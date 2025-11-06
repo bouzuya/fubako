@@ -6,7 +6,7 @@
 	"image": "mcr.microsoft.com/devcontainers/rust:1-1-bullseye",
 	"features": {
 		"ghcr.io/devcontainers/features/rust:1": {
-			"version": "1.90.0"
+			"version": "1.91.0"
 		}
 	},
 	// Use 'mounts' to make the cargo cache persistent in a Docker Volume.

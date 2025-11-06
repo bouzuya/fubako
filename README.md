@@ -1,8 +1,3 @@
-# fubako
+# xtask
 
-Use [Development Containers](https://containers.dev/).
-
-## TODOs
-
-- image download
-- `images/`
+<https://github.com/matklad/cargo-xtask>

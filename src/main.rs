@@ -3,6 +3,7 @@ mod page_id;
 mod page_io;
 mod page_meta;
 mod subcommand;
+mod util;
 
 use crate::config::Config;
 

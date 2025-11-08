@@ -6,7 +6,7 @@ mod preview;
 pub(crate) enum Subcommand {
     /// Manage images
     #[clap(subcommand)]
-    Image(crate::subcommand::image::ImageCommand),
+    Image(self::image::Subcommand),
     /// Create a new page
     New,
     /// Start a local preview server
@@ -16,7 +16,7 @@ pub(crate) enum Subcommand {
 impl Subcommand {
     pub(crate) async fn execute(self) -> anyhow::Result<()> {
         match self {
-            Subcommand::Image(image_command) => self::image::execute(image_command).await,
+            Subcommand::Image(subcommand) => self::image::execute(subcommand).await,
             Subcommand::New => self::new::execute().await,
             Subcommand::Preview => self::preview::execute().await,
         }

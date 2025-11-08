@@ -2,7 +2,13 @@ use std::io::Write;
 
 use anyhow::Context;
 
-pub(super) async fn execute() -> anyhow::Result<()> {
+#[derive(clap::Args)]
+pub(crate) struct Args {
+    /// The name of the image to pull
+    name: Option<String>,
+}
+
+pub(super) async fn execute(args: Args) -> anyhow::Result<()> {
     let config = crate::config::Config::load().await?;
     let image_bucket_name = config.image_bucket_name.clone();
     let images_dir = config.data_dir.join("images");
@@ -17,7 +23,10 @@ pub(super) async fn execute() -> anyhow::Result<()> {
         let local_image_names = crate::util::list_local_image_names(&images_dir)?;
         remote_image_names
             .into_iter()
-            .filter(|it| !local_image_names.contains(it))
+            .filter(|it| {
+                args.name.as_ref().map(|name| it == name).unwrap_or(true)
+                    && !local_image_names.contains(it)
+            })
             .collect::<std::collections::BTreeSet<String>>()
     };
 

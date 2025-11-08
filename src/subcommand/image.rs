@@ -4,14 +4,14 @@ mod push;
 #[derive(clap::Subcommand)]
 pub(crate) enum Subcommand {
     /// Pull images from remote storage
-    Pull,
+    Pull(self::pull::Args),
     /// Push images to remote storage
-    Push,
+    Push(self::push::Args),
 }
 
 pub(super) async fn execute(subcommand: Subcommand) -> anyhow::Result<()> {
     match subcommand {
-        Subcommand::Pull => self::pull::execute().await,
-        Subcommand::Push => self::push::execute().await,
+        Subcommand::Pull(args) => self::pull::execute(args).await,
+        Subcommand::Push(args) => self::push::execute(args).await,
     }
 }

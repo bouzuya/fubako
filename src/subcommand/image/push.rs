@@ -1,4 +1,10 @@
-pub(super) async fn execute() -> anyhow::Result<()> {
+#[derive(clap::Args)]
+pub(crate) struct Args {
+    /// The name of the image to push
+    name: Option<String>,
+}
+
+pub(super) async fn execute(args: Args) -> anyhow::Result<()> {
     let config = crate::config::Config::load().await?;
     let image_bucket_name = config.image_bucket_name.clone();
     let image_object_prefix = config.image_object_prefix.clone();
@@ -13,7 +19,10 @@ pub(super) async fn execute() -> anyhow::Result<()> {
         .await?;
         local_image_names
             .into_iter()
-            .filter(|it| !remote_image_names.contains(it))
+            .filter(|it| {
+                args.name.as_ref().map(|name| it == name).unwrap_or(true)
+                    && !remote_image_names.contains(it)
+            })
             .collect::<std::collections::BTreeSet<String>>()
     };
 

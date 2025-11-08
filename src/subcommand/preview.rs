@@ -48,6 +48,35 @@ pub(super) async fn execute() -> anyhow::Result<()> {
         })
     }
 
+    async fn get_image(
+        axum::extract::State(state): axum::extract::State<std::sync::Arc<std::sync::Mutex<State>>>,
+        axum::extract::Path(image_name): axum::extract::Path<String>,
+    ) -> Result<Vec<u8>, axum::http::StatusCode> {
+        let state = state.lock().map_err(|_| axum::http::StatusCode::CONFLICT)?;
+        let images_dir = state
+            .config
+            .data_dir
+            .join("images")
+            .canonicalize()
+            .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?;
+        let image_file_path = images_dir
+            .join(&image_name)
+            .canonicalize()
+            .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?;
+        if !image_file_path.starts_with(images_dir) {
+            return Err(axum::http::StatusCode::FORBIDDEN);
+        }
+
+        if !std::fs::exists(&image_file_path)
+            .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?
+        {
+            return Err(axum::http::StatusCode::NOT_FOUND);
+        }
+
+        Ok(std::fs::read(&image_file_path)
+            .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?)
+    }
+
     #[derive(askama::Template)]
     #[template(path = "list.html")]
     struct ListResponse {
@@ -229,6 +258,7 @@ pub(super) async fn execute() -> anyhow::Result<()> {
     let router = axum::Router::new()
         .route("/", axum::routing::get(list))
         .route("/{id}", axum::routing::get(get))
+        .route("/images/{image_name}", axum::routing::get(get_image))
         .with_state(state);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;
     axum::serve(listener, router).await?;

@@ -16,6 +16,7 @@ pub(super) async fn execute(args: Args) -> anyhow::Result<()> {
 
     let image_names = {
         let remote_image_names = crate::util::list_remote_image_names(
+            &config.google_application_credentials,
             &config.image_bucket_name,
             &config.image_object_prefix,
         )

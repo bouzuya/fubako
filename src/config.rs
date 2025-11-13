@@ -3,6 +3,7 @@ use anyhow::Context;
 #[derive(serde::Deserialize)]
 pub(crate) struct Config {
     pub(crate) data_dir: std::path::PathBuf,
+    pub(crate) google_application_credentials: std::path::PathBuf,
     pub(crate) image_bucket_name: String,
     pub(crate) image_object_prefix: String,
 }

@@ -17,13 +17,25 @@ pub(crate) fn list_local_image_names(
 }
 
 pub(crate) async fn list_remote_image_names(
+    google_application_credentials: &std::path::Path,
     image_bucket_name: &str,
     image_object_prefix: &str,
 ) -> anyhow::Result<std::collections::BTreeSet<String>> {
     use google_cloud_gax::paginator::ItemPaginator;
 
+    let service_account_key_content = std::fs::read_to_string(google_application_credentials)
+        .context("failed to read service account key file")?;
+    let service_account_key =
+        serde_json::from_str::<serde_json::Value>(&service_account_key_content)
+            .context("failed to parse service account key file")?;
+
     let mut image_names = std::collections::BTreeSet::new();
     let control = google_cloud_storage::client::StorageControl::builder()
+        .with_credentials(
+            google_cloud_auth::credentials::service_account::Builder::new(service_account_key)
+                .build()
+                .context("failed to build credentials")?,
+        )
         .build()
         .await?;
     let builder = control

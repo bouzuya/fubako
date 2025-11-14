@@ -1,6 +1,6 @@
 mod image;
 mod new;
-mod preview;
+mod serve;
 
 #[derive(clap::Subcommand)]
 pub(crate) enum Subcommand {
@@ -9,8 +9,8 @@ pub(crate) enum Subcommand {
     Image(self::image::Subcommand),
     /// Create a new page
     New,
-    /// Start a local preview server
-    Preview,
+    /// Start the local server
+    Serve,
 }
 
 impl Subcommand {
@@ -18,7 +18,7 @@ impl Subcommand {
         match self {
             Subcommand::Image(subcommand) => self::image::execute(subcommand).await,
             Subcommand::New => self::new::execute().await,
-            Subcommand::Preview => self::preview::execute().await,
+            Subcommand::Serve => self::serve::execute().await,
         }
     }
 }

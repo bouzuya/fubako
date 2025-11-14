@@ -1,3 +1,5 @@
+use anyhow::Context as _;
+
 #[derive(clap::Args)]
 pub(crate) struct Args {
     /// The name of the image to push
@@ -27,7 +29,18 @@ pub(super) async fn execute(args: Args) -> anyhow::Result<()> {
             .collect::<std::collections::BTreeSet<String>>()
     };
 
+    let service_account_key_content =
+        std::fs::read_to_string(&config.google_application_credentials)
+            .context("failed to read service account key file")?;
+    let service_account_key =
+        serde_json::from_str::<serde_json::Value>(&service_account_key_content)
+            .context("failed to parse service account key file")?;
     let client = google_cloud_storage::client::Storage::builder()
+        .with_credentials(
+            google_cloud_auth::credentials::service_account::Builder::new(service_account_key)
+                .build()
+                .context("failed to build credentials")?,
+        )
         .build()
         .await?;
     for image_name in image_names {

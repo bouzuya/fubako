@@ -1,7 +1,7 @@
 #[derive(clap::Args)]
 pub(crate) struct Args {
     /// The name of the image to push
-    name: Option<String>,
+    pub(crate) name: Option<String>,
 }
 
 pub(super) async fn execute(args: Args) -> anyhow::Result<()> {

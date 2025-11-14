@@ -9,7 +9,7 @@ use crate::config::Config;
 
 #[derive(clap::Parser)]
 struct Cli {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcommand: subcommand::Subcommand,
 }
 

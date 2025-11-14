@@ -5,7 +5,7 @@ mod serve;
 #[derive(clap::Subcommand)]
 pub(crate) enum Subcommand {
     /// Manage images
-    #[clap(subcommand)]
+    #[command(subcommand)]
     Image(self::image::Subcommand),
     /// Create a new page
     New,

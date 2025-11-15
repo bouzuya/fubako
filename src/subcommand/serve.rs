@@ -4,10 +4,10 @@ pub(super) async fn execute() -> anyhow::Result<()> {
     #[derive(Debug, askama::Template)]
     #[template(path = "get.html")]
     struct GetResponse {
+        backlinks: Vec<String>,
         html: String,
         id: String,
         links: Vec<String>,
-        rev_links: Vec<String>,
         title: String,
     }
 
@@ -39,8 +39,8 @@ pub(super) async fn execute() -> anyhow::Result<()> {
                 .iter()
                 .map(|id| id.to_string())
                 .collect::<Vec<String>>(),
-            rev_links: state
-                .rev_index
+            backlinks: state
+                .backlinks
                 .get(&page_id)
                 .map(|set| set.iter().map(|id| id.to_string()).collect::<Vec<String>>())
                 .unwrap_or_default(),
@@ -136,10 +136,10 @@ pub(super) async fn execute() -> anyhow::Result<()> {
         page_metas.insert(page_id.clone(), page_meta);
     }
 
-    let mut rev_index = std::collections::BTreeMap::new();
+    let mut backlinks = std::collections::BTreeMap::new();
     for (page_id, page_meta) in &page_metas {
         for linked_page_id in &page_meta.links {
-            rev_index
+            backlinks
                 .entry(linked_page_id.clone())
                 .or_insert_with(std::collections::BTreeSet::new)
                 .insert(page_id.clone());
@@ -147,19 +147,19 @@ pub(super) async fn execute() -> anyhow::Result<()> {
     }
 
     struct State {
-        config: crate::config::Config,
-        page_metas: std::collections::BTreeMap<crate::page_id::PageId, crate::page_meta::PageMeta>,
-        rev_index: std::collections::BTreeMap<
+        backlinks: std::collections::BTreeMap<
             crate::page_id::PageId,
             std::collections::BTreeSet<crate::page_id::PageId>,
         >,
+        config: crate::config::Config,
+        page_metas: std::collections::BTreeMap<crate::page_id::PageId, crate::page_meta::PageMeta>,
     }
 
     let watch_dir = config.data_dir.clone();
     let state = std::sync::Arc::new(std::sync::Mutex::new(State {
+        backlinks,
         config,
         page_metas,
-        rev_index,
     }));
 
     // run watcher
@@ -175,9 +175,9 @@ pub(super) async fn execute() -> anyhow::Result<()> {
             let old_page_meta = state.page_metas.get(&page_id).cloned();
             match old_page_meta {
                 Some(old_page_meta) => {
-                    // remove old links from rev_index
+                    // remove old links from backlinks
                     for linked_page_id in &old_page_meta.links {
-                        if let Some(set) = state.rev_index.get_mut(linked_page_id) {
+                        if let Some(set) = state.backlinks.get_mut(linked_page_id) {
                             set.remove(&page_id);
                         }
                     }
@@ -194,9 +194,9 @@ pub(super) async fn execute() -> anyhow::Result<()> {
         let old_page_meta = state.page_metas.get(&page_id).cloned();
         match old_page_meta {
             Some(old_page_meta) => {
-                // remove old links from rev_index
+                // remove old links from backlinks
                 for linked_page_id in &old_page_meta.links {
-                    if let Some(set) = state.rev_index.get_mut(linked_page_id) {
+                    if let Some(set) = state.backlinks.get_mut(linked_page_id) {
                         set.remove(&page_id);
                     }
                 }
@@ -208,7 +208,7 @@ pub(super) async fn execute() -> anyhow::Result<()> {
 
         for linked_page_id in &new_page_meta.links {
             state
-                .rev_index
+                .backlinks
                 .entry(linked_page_id.clone())
                 .or_insert_with(std::collections::BTreeSet::new)
                 .insert(page_id.clone());

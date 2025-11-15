@@ -1,4 +1,5 @@
 use anyhow::Context as _;
+use axum::response::IntoResponse;
 
 pub(super) async fn execute() -> anyhow::Result<()> {
     #[derive(Debug, askama::Template)]
@@ -249,10 +250,20 @@ pub(super) async fn execute() -> anyhow::Result<()> {
     }
     tokio::spawn(new_watcher(state.clone(), watch_dir));
 
+    async fn get_styles_index() -> axum::response::Response<axum::body::Body> {
+        let mut response = include_str!("../../public/styles/index.css").into_response();
+        response.headers_mut().insert(
+            axum::http::header::CONTENT_TYPE,
+            axum::http::HeaderValue::from_static("text/css"),
+        );
+        response
+    }
+
     let router = axum::Router::new()
         .route("/", axum::routing::get(list))
         .route("/{id}", axum::routing::get(get))
         .route("/images/{image_name}", axum::routing::get(get_image))
+        .route("/styles/index.css", axum::routing::get(get_styles_index))
         .with_state(state);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;
     axum::serve(listener, router).await?;

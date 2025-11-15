@@ -5,25 +5,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{{ id }} {{ title }}</title>
+    <link rel="stylesheet" href="/styles/index.css" />
 </head>
 
 <body>
     <nav>
-        <!-- Breadcrumb -->
-        <h2>Breadcrumb:</h2>
-        <ol>
-            <li><a href="/">/</a></li>
-            <li><a href="/{{ id }}">{{ id }}</a></li>
-        </ol>
+        <div class="breadcrumb_section">
+            <h2>Breadcrumb</h2>
+            <ol>
+                <li><a href="/">/</a></li>
+                <li><a href="/{{ id }}">{{ id }}</a></li>
+            </ol>
+        </div>
 
-        <!-- Backlinks -->
         {% if !backlinks.is_empty() %}
-        <h2>Backlinks:</h2>
-        <ul>
-            {% for page_id in backlinks %}
-            <li><a href="/{{ page_id }}">{{ page_id }}</a></li>
-            {% endfor %}
-        </ul>
+        <div class="backlinks_section">
+            <h2>Backlinks</h2>
+            <ul>
+                {% for page_id in backlinks %}
+                <li><a href="/{{ page_id }}">{{ page_id }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
         {% endif %}
     </nav>
 

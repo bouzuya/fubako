@@ -1,0 +1,52 @@
+html,
+body {
+    margin: 0;
+    padding: 0;
+}
+
+nav {
+    border-bottom: 1px solid #000000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+}
+
+.breadcrumb_section {
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+
+    & h2 {
+        display: none;
+    }
+
+    & ol {
+        display: flex;
+        flex-direction: row;
+        gap: 16px;
+        list-style-type: none;
+        margin: 0;
+        padding: 0;
+    }
+}
+
+.backlinks_section {
+    margin: 0;
+    padding: 0;
+
+    & h2 {
+        font-size: 100%;
+        font-weight: bold;
+        margin: 0;
+        padding: 0;
+    }
+
+    & ul {
+        margin: 0;
+        padding: 0 0 0 16px;
+    }
+}

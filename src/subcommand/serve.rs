@@ -7,7 +7,6 @@ pub(super) async fn execute() -> anyhow::Result<()> {
         backlinks: Vec<String>,
         html: String,
         id: String,
-        links: Vec<String>,
         title: String,
     }
 
@@ -32,18 +31,13 @@ pub(super) async fn execute() -> anyhow::Result<()> {
             .map_err(|_| axum::http::StatusCode::NOT_FOUND)?;
 
         Ok(GetResponse {
-            html,
-            id: page_id.to_string(),
-            links: page_meta
-                .links
-                .iter()
-                .map(|id| id.to_string())
-                .collect::<Vec<String>>(),
             backlinks: state
                 .backlinks
                 .get(&page_id)
                 .map(|set| set.iter().map(|id| id.to_string()).collect::<Vec<String>>())
                 .unwrap_or_default(),
+            html,
+            id: page_id.to_string(),
             title: page_meta.title.clone().unwrap_or_default(),
         })
     }

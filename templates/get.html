@@ -16,16 +16,6 @@
             <li><a href="/{{ id }}">{{ id }}</a></li>
         </ol>
 
-        <!-- Links -->
-        {% if !links.is_empty() %}
-        <h2>Links:</h2>
-        <ul>
-            {% for page_id in links %}
-            <li><a href="/{{ page_id }}">{{ page_id }}</a></li>
-            {% endfor %}
-        </ul>
-        {% endif %}
-
         <!-- Backlinks -->
         {% if !backlinks.is_empty() %}
         <h2>Backlinks:</h2>

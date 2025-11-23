@@ -63,8 +63,12 @@ impl PageIo {
         config: &crate::Config,
         page_id: &crate::page_id::PageId,
     ) -> anyhow::Result<String> {
+        let syntax_set = syntect::parsing::SyntaxSet::load_defaults_newlines();
+        let theme_set = syntect::highlighting::ThemeSet::load_defaults();
+
         let path = Self::page_path(config, &page_id);
         let md = std::fs::read_to_string(path).context("not found")?;
+        let mut start_fenced_code_block_with_info_string = None;
         let parser = pulldown_cmark::Parser::new_with_broken_link_callback(
             &md,
             pulldown_cmark::Options::empty(),
@@ -79,7 +83,40 @@ impl PageIo {
                     )),
                 }
             }),
-        );
+        )
+        .filter_map(|event| match event {
+            pulldown_cmark::Event::Start(pulldown_cmark::Tag::CodeBlock(
+                pulldown_cmark::CodeBlockKind::Fenced(info_string),
+            )) => {
+                start_fenced_code_block_with_info_string = Some(info_string.clone());
+                None
+            }
+            pulldown_cmark::Event::End(pulldown_cmark::TagEnd::CodeBlock) => None,
+            pulldown_cmark::Event::Text(cow_str) => {
+                let result = if let Some(info_string) = &start_fenced_code_block_with_info_string {
+                    let html = syntect::html::highlighted_html_for_string(
+                        cow_str.as_ref(),
+                        &syntax_set,
+                        syntax_set
+                            .find_syntax_by_token(&info_string)
+                            .unwrap_or_else(|| syntax_set.find_syntax_plain_text()),
+                        &theme_set.themes["base16-ocean.dark"],
+                    )
+                    .unwrap();
+                    Some(pulldown_cmark::Event::Html(pulldown_cmark::CowStr::Boxed(
+                        html.into_boxed_str(),
+                    )))
+                } else {
+                    Some(pulldown_cmark::Event::Text(cow_str))
+                };
+
+                // FIXME: multi text blocks
+                start_fenced_code_block_with_info_string = None;
+
+                result
+            }
+            _ => Some(event),
+        });
         let mut html = String::new();
         pulldown_cmark::html::push_html(&mut html, parser);
         Ok(html)

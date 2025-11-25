@@ -83,8 +83,9 @@ impl PageIo {
                     )),
                 }
             }),
-        )
-        .filter_map(|event| match event {
+        );
+        let parser = pulldown_cmark::TextMergeStream::new(parser);
+        let parser = parser.filter_map(|event| match event {
             pulldown_cmark::Event::Start(pulldown_cmark::Tag::CodeBlock(
                 pulldown_cmark::CodeBlockKind::Fenced(info_string),
             )) => {
@@ -110,7 +111,6 @@ impl PageIo {
                     Some(pulldown_cmark::Event::Text(cow_str))
                 };
 
-                // FIXME: multi text blocks
                 start_fenced_code_block_with_info_string = None;
 
                 result

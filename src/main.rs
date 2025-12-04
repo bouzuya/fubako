@@ -5,12 +5,10 @@ mod page_meta;
 mod subcommand;
 mod util;
 
-use crate::config::Config;
-
 #[derive(clap::Parser)]
 struct Cli {
     #[command(subcommand)]
-    subcommand: subcommand::Subcommand,
+    subcommand: self::subcommand::Subcommand,
 }
 
 #[tokio::main]

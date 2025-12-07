@@ -17,11 +17,16 @@ impl PageMeta {
             &md,
             pulldown_cmark::Options::empty(),
             Some(|link: pulldown_cmark::BrokenLink<'_>| {
-                match <PageId as std::str::FromStr>::from_str(&link.reference) {
-                    Err(_) => None,
-                    Ok(page_id) => {
-                        broken_page_links.push(page_id.clone());
-                        None
+                if link.reference.as_bytes() == b"/" {
+                    broken_page_links.push(PageId::root());
+                    None
+                } else {
+                    match <PageId as std::str::FromStr>::from_str(&link.reference) {
+                        Err(_) => None,
+                        Ok(page_id) => {
+                            broken_page_links.push(page_id.clone());
+                            None
+                        }
                     }
                 }
             }),
@@ -49,10 +54,14 @@ impl PageMeta {
                         | pulldown_cmark::LinkType::Collapsed
                         | pulldown_cmark::LinkType::Shortcut => {
                             if let Some(stripped) = dest_url.strip_prefix('/') {
-                                match <PageId as std::str::FromStr>::from_str(stripped) {
-                                    Err(_) => { /* do nothing */ }
-                                    Ok(page_id) => {
-                                        page_links.push(page_id);
+                                if stripped.is_empty() {
+                                    page_links.push(PageId::root());
+                                } else {
+                                    match <PageId as std::str::FromStr>::from_str(stripped) {
+                                        Err(_) => { /* do nothing */ }
+                                        Ok(page_id) => {
+                                            page_links.push(page_id);
+                                        }
                                     }
                                 }
                             }
@@ -176,6 +185,104 @@ mod tests {
         assert_eq!(
             page_meta.links,
             set([id("19700102T151617Z")?, id("19710102T151617Z")?])
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_from_markdown_links_field_root() -> anyhow::Result<()> {
+        fn id(s: &str) -> anyhow::Result<PageId> {
+            Ok(<PageId as std::str::FromStr>::from_str(s)?)
+        }
+
+        fn set<I>(iter: I) -> std::collections::BTreeSet<PageId>
+        where
+            I: IntoIterator<Item = PageId>,
+        {
+            iter.into_iter()
+                .collect::<std::collections::BTreeSet<PageId>>()
+        }
+
+        // inline link
+        let md = "[foo](/README)";
+        let page_meta = PageMeta::from_markdown(md);
+        assert_eq!(page_meta.links, set([id("README")?]));
+        let md = "[foo](/)";
+        let page_meta = PageMeta::from_markdown(md);
+        assert_eq!(page_meta.links, set([id("README")?]));
+
+        // reference link
+        let md = "[foo][bar]\n\n[bar]: /README";
+        let page_meta = PageMeta::from_markdown(md);
+        assert_eq!(page_meta.links, set([id("README")?]));
+        let md = "[foo][bar]\n\n[bar]: /";
+        let page_meta = PageMeta::from_markdown(md);
+        assert_eq!(page_meta.links, set([id("README")?]));
+
+        // reference link (broken)
+        let md = "[foo][README]";
+        let page_meta = PageMeta::from_markdown(md);
+        assert_eq!(page_meta.links, set([id("README")?]));
+        let md = "[foo][/]";
+        let page_meta = PageMeta::from_markdown(md);
+        assert_eq!(page_meta.links, set([id("README")?]));
+
+        // collapsed link
+        let md = "[foo][]\n\n[foo]: /README";
+        let page_meta = PageMeta::from_markdown(md);
+        assert_eq!(page_meta.links, set([id("README")?]));
+        let md = "[foo][]\n\n[foo]: /";
+        let page_meta = PageMeta::from_markdown(md);
+        assert_eq!(page_meta.links, set([id("README")?]));
+
+        // collapsed link (broken)
+        let md = "[README][]";
+        let page_meta = PageMeta::from_markdown(md);
+        assert_eq!(page_meta.links, set([id("README")?]));
+        let md = "[/][]";
+        let page_meta = PageMeta::from_markdown(md);
+        assert_eq!(page_meta.links, set([id("README")?]));
+
+        // shortcut link
+        let md = "[foo]\n\n[foo]: /README";
+        let page_meta = PageMeta::from_markdown(md);
+        assert_eq!(page_meta.links, set([id("README")?]));
+        let md = "[foo]\n\n[foo]: /";
+        let page_meta = PageMeta::from_markdown(md);
+        assert_eq!(page_meta.links, set([id("README")?]));
+
+        // shortcut link (broken)
+        let md = "[README]";
+        let page_meta = PageMeta::from_markdown(md);
+        assert_eq!(page_meta.links, set([id("README")?]));
+        let md = "[/]";
+        let page_meta = PageMeta::from_markdown(md);
+        assert_eq!(page_meta.links, set([id("README")?]));
+
+        // (duplicate)
+        let md = "[README]\n\n[README]";
+        let page_meta = PageMeta::from_markdown(md);
+        assert_eq!(page_meta.links, set([id("README")?]));
+        let md = "[/]\n\n[/]";
+        let page_meta = PageMeta::from_markdown(md);
+        assert_eq!(page_meta.links, set([id("README")?]));
+        let md = "[README]\n\n[/]";
+        let page_meta = PageMeta::from_markdown(md);
+        assert_eq!(page_meta.links, set([id("README")?]));
+
+        // (two different)
+        let md = "[19700102T151617Z]\n\n[README]";
+        let page_meta = PageMeta::from_markdown(md);
+        assert_eq!(
+            page_meta.links,
+            set([id("19700102T151617Z")?, id("README")?])
+        );
+        let md = "[19700102T151617Z]\n\n[/]";
+        let page_meta = PageMeta::from_markdown(md);
+        assert_eq!(
+            page_meta.links,
+            set([id("19700102T151617Z")?, id("README")?])
         );
 
         Ok(())

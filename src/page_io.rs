@@ -75,16 +75,6 @@ impl PageIo {
         let md = std::fs::read_to_string(path).context("not found")?;
         f(md)
     }
-
-    pub(crate) fn read_root_page_content(config: &crate::config::Config) -> anyhow::Result<String> {
-        let path = Self::root_page_path(config);
-        let md = std::fs::read_to_string(path).context("not found")?;
-        f(md)
-    }
-
-    fn root_page_path(config: &crate::config::Config) -> std::path::PathBuf {
-        config.data_dir.join("README.md")
-    }
 }
 
 fn f(md: String) -> anyhow::Result<String> {

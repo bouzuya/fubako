@@ -1,8 +1,8 @@
 #[derive(askama::Template)]
 #[template(path = "list.html")]
 pub struct ListResponse {
-    page_metas: Vec<ListResponsePageMeta>,
-    q: String,
+    pub(crate) page_metas: Vec<ListResponsePageMeta>,
+    pub(crate) q: String,
 }
 
 impl axum::response::IntoResponse for ListResponse {
@@ -13,13 +13,13 @@ impl axum::response::IntoResponse for ListResponse {
 }
 
 pub struct ListResponsePageMeta {
-    id: String,
-    title: String,
+    pub(crate) id: String,
+    pub(crate) title: String,
 }
 
 #[derive(serde::Deserialize)]
 pub struct ListRequestQuery {
-    q: Option<String>,
+    pub(crate) q: Option<String>,
 }
 
 pub async fn handle(

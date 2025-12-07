@@ -134,7 +134,10 @@ pub(super) async fn execute() -> anyhow::Result<()> {
     tokio::spawn(new_watcher(state.clone(), watch_dir));
 
     let router = axum::Router::new()
-        .route("/", axum::routing::get(self::handler::list))
+        .route(
+            "/",
+            axum::routing::get(self::handler::get_root_or_list_pages),
+        )
         .route("/{id}", axum::routing::get(self::handler::get))
         .route("/pages", axum::routing::get(self::handler::list))
         .route("/pages/{id}", axum::routing::get(self::handler::get))

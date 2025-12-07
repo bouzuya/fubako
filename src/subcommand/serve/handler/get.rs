@@ -1,10 +1,10 @@
 #[derive(Debug, askama::Template)]
 #[template(path = "get.html")]
 pub struct GetResponse {
-    backlinks: Vec<String>,
-    html: String,
-    id: String,
-    title: String,
+    pub(crate) backlinks: Vec<String>,
+    pub(crate) html: String,
+    pub(crate) id: String,
+    pub(crate) title: String,
 }
 
 impl axum::response::IntoResponse for GetResponse {

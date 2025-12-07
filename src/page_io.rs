@@ -44,10 +44,6 @@ impl PageIo {
                 continue;
             }
 
-            if path_buf.file_name().is_some_and(|s| s == "README.md") {
-                continue;
-            }
-
             let file_stem = path_buf.file_stem().context("file_stem")?;
             let page_id = file_stem.to_str().context("file_stem is not UTF-8")?;
             let page_id = <crate::page_id::PageId as std::str::FromStr>::from_str(page_id)

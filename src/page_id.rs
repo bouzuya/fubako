@@ -7,6 +7,14 @@ impl PageId {
         let s = now.format("%Y%m%dT%H%M%SZ").to_string();
         Self(s)
     }
+
+    pub fn root() -> Self {
+        Self("README".to_owned())
+    }
+
+    pub fn is_root(&self) -> bool {
+        self.0 == "README"
+    }
 }
 
 impl std::fmt::Display for PageId {
@@ -19,8 +27,9 @@ impl std::str::FromStr for PageId {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        (s.len() == "00000000T000000Z".len()
-            && s.chars().all(|c| matches!(c, '0'..='9' | 'T' | 'Z')))
+        ((s == "README")
+            || (s.len() == "00000000T000000Z".len()
+                && s.chars().all(|c| matches!(c, '0'..='9' | 'T' | 'Z'))))
         .then_some(Self(s.to_string()))
         .ok_or_else(|| anyhow::anyhow!("invalid ID format"))
     }
@@ -44,8 +53,9 @@ impl<'de> serde::de::Deserialize<'de> for PageId {
             where
                 E: serde::de::Error,
             {
-                (v.len() == "00000000T000000Z".len()
-                    && v.chars().all(|c| matches!(c, '0'..='9' | 'T' | 'Z')))
+                ((v == "README")
+                    || (v.len() == "00000000T000000Z".len()
+                        && v.chars().all(|c| matches!(c, '0'..='9' | 'T' | 'Z'))))
                 .then_some(v)
                 .map(PageId)
                 .ok_or_else(|| E::custom("invalid ID format"))
@@ -67,6 +77,20 @@ mod tests {
     }
 
     #[test]
+    fn test_impl_page_id_root() {
+        let page_id = PageId::root();
+        assert_eq!(page_id.0, "README");
+    }
+
+    #[test]
+    fn test_impl_page_id_is_root() {
+        let page_id = PageId::new();
+        assert_eq!(page_id.is_root(), false);
+        let page_id = PageId::root();
+        assert_eq!(page_id.is_root(), true);
+    }
+
+    #[test]
     fn test_impl_display_for_page_id() -> anyhow::Result<()> {
         let s = "20240620T123456Z";
         let page_id = <PageId as std::str::FromStr>::from_str(s)?;
@@ -83,6 +107,9 @@ mod tests {
         assert_eq!(page_id.to_string(), valid);
 
         assert!(<PageId as std::str::FromStr>::from_str(invalid).is_err());
+
+        let page_id = <PageId as std::str::FromStr>::from_str("README")?;
+        assert_eq!(page_id.to_string(), "README");
         Ok(())
     }
 

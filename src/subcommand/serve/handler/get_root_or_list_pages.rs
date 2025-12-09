@@ -1,6 +1,6 @@
 pub enum GetRootOrListPagesResponse {
     Get(super::get::GetResponse),
-    List(super::list::ListResponse),
+    List,
 }
 
 impl From<super::get::GetResponse> for GetRootOrListPagesResponse {
@@ -9,17 +9,18 @@ impl From<super::get::GetResponse> for GetRootOrListPagesResponse {
     }
 }
 
-impl From<super::list::ListResponse> for GetRootOrListPagesResponse {
-    fn from(value: super::list::ListResponse) -> Self {
-        Self::List(value)
-    }
-}
-
 impl axum::response::IntoResponse for GetRootOrListPagesResponse {
     fn into_response(self) -> axum::response::Response {
         match self {
             Self::Get(resp) => resp.into_response(),
-            Self::List(resp) => resp.into_response(),
+            Self::List => {
+                let mut response = axum::http::StatusCode::FOUND.into_response();
+                response.headers_mut().insert(
+                    axum::http::header::LOCATION,
+                    axum::http::HeaderValue::from_static("/pages"),
+                );
+                response
+            }
         }
     }
 }
@@ -52,25 +53,6 @@ pub async fn handle(
                 title: page_meta.title.clone().unwrap_or_default(),
             }))
         }
-        None => {
-            let config = &state.config;
-            let page_metas = state
-                .page_metas
-                .iter()
-                .filter(|(page_id, _page_meta)| {
-                    q.is_empty() || {
-                        crate::page_io::PageIo::read_page_content(config, page_id)
-                            .is_ok_and(|content| content.contains(&q))
-                    }
-                })
-                .map(|(id, meta)| super::list::ListResponsePageMeta {
-                    id: id.to_string(),
-                    title: meta.title.clone().unwrap_or_default(),
-                })
-                .collect::<Vec<super::list::ListResponsePageMeta>>();
-            Ok(GetRootOrListPagesResponse::from(
-                super::list::ListResponse { page_metas, q },
-            ))
-        }
+        None => Ok(GetRootOrListPagesResponse::List),
     }
 }

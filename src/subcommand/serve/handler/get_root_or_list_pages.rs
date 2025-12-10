@@ -29,11 +29,7 @@ pub async fn handle(
     axum::extract::State(state): axum::extract::State<
         std::sync::Arc<std::sync::Mutex<crate::subcommand::serve::State>>,
     >,
-    axum::extract::Query(super::list::ListRequestQuery { q }): axum::extract::Query<
-        super::list::ListRequestQuery,
-    >,
 ) -> Result<GetRootOrListPagesResponse, axum::http::StatusCode> {
-    let q = q.unwrap_or_default().trim().to_owned();
     let state = state.lock().map_err(|_| axum::http::StatusCode::CONFLICT)?;
 
     let page_id = crate::page_id::PageId::root();

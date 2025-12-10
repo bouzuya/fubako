@@ -146,6 +146,10 @@ pub(super) async fn execute() -> anyhow::Result<()> {
             axum::routing::get(self::handler::get_image),
         )
         .route(
+            "/scripts/index.js",
+            axum::routing::get(self::handler::get_script_index),
+        )
+        .route(
             "/styles/index.css",
             axum::routing::get(self::handler::get_style_index),
         )

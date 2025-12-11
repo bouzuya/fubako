@@ -22,7 +22,7 @@ impl PageIo {
         Ok(page_id)
     }
 
-    fn page_path(
+    pub(crate) fn page_path(
         config: &crate::config::Config,
         page_id: &crate::page_id::PageId,
     ) -> std::path::PathBuf {

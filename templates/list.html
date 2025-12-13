@@ -18,15 +18,17 @@
                 <li><a href="/pages">pages</a></li>
             </ol>
         </div>
+
+        <div class="search_section">
+            <form action="/pages" method="get">
+                <input name="q" type="text" value="{{ q }}" />
+                <input type="submit" value="🔍" />
+            </form>
+        </div>
     </nav>
 
     <div class="content_section">
         <h1>Index</h1>
-
-        <form method="get">
-            <input name="q" type="text" value="{{ q }}" />
-            <input type="submit" value="search" />
-        </form>
 
         {% if !page_metas.is_empty() %}
         <ul>

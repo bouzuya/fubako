@@ -37,7 +37,7 @@ pub async fn handle(
         .filter(|(page_id, _page_meta)| {
             q.is_empty() || {
                 crate::page_io::PageIo::read_page_content(config, page_id)
-                    .is_ok_and(|content| content.contains(&q))
+                    .is_ok_and(|content| match_content(&content, &q))
             }
         })
         .map(|(id, meta)| ListResponsePageMeta {
@@ -46,4 +46,32 @@ pub async fn handle(
         })
         .collect::<Vec<ListResponsePageMeta>>();
     Ok(ListResponse { page_metas, q })
+}
+
+fn match_content(content: &str, q: &str) -> bool {
+    let content = content.to_lowercase();
+    let q = q.to_lowercase();
+    q.split_whitespace().all(|q| content.contains(q))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_match_content() {
+        let content = "This is a sample page content.";
+        // single keyword
+        assert!(match_content(content, "This"));
+        assert!(match_content(content, "page"));
+        // ignore case
+        assert!(match_content(content, "this"));
+        // multiple keywords
+        assert!(match_content(content, "This page"));
+        assert!(match_content(content, "This\tpage"));
+        assert!(match_content(content, "This\u{3000}page"));
+        assert!(match_content(content, "This \t\u{3000}page"));
+        // not found
+        assert!(!match_content(content, "notfound"));
+    }
 }

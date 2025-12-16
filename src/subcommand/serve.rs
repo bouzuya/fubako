@@ -9,6 +9,8 @@ struct State {
     >,
     config: crate::config::Config,
     page_metas: std::collections::BTreeMap<crate::page_id::PageId, crate::page_meta::PageMeta>,
+    page_titles:
+        std::collections::BTreeMap<String, std::collections::BTreeSet<crate::page_id::PageId>>,
 }
 
 pub(super) async fn execute() -> anyhow::Result<()> {
@@ -17,9 +19,21 @@ pub(super) async fn execute() -> anyhow::Result<()> {
     // create index
     let page_ids = crate::page_io::PageIo::read_page_ids(&config)?;
 
+    let mut page_titles = std::collections::BTreeMap::new();
     let mut page_metas = std::collections::BTreeMap::new();
     for page_id in &page_ids {
         let page_meta = crate::page_io::PageIo::read_page_meta(&config, page_id)?;
+        match page_meta.title.as_deref() {
+            None => {
+                // do nothing
+            }
+            Some(title) => {
+                page_titles
+                    .entry(title.to_owned())
+                    .or_insert_with(std::collections::BTreeSet::new)
+                    .insert(page_id.clone());
+            }
+        }
         page_metas.insert(page_id.clone(), page_meta);
     }
 
@@ -38,6 +52,7 @@ pub(super) async fn execute() -> anyhow::Result<()> {
         backlinks,
         config,
         page_metas,
+        page_titles,
     }));
 
     // run watcher
@@ -78,6 +93,21 @@ pub(super) async fn execute() -> anyhow::Result<()> {
                         set.remove(&page_id);
                     }
                 }
+
+                // remove old title from page_titles
+                match old_page_meta.title.as_deref() {
+                    None => {
+                        // do nothing
+                    }
+                    Some(old_title) => {
+                        state
+                            .page_titles
+                            .entry(old_title.to_owned())
+                            .and_modify(|set| {
+                                set.remove(&page_id);
+                            });
+                    }
+                }
             }
             None => {
                 // do nothing
@@ -95,6 +125,18 @@ pub(super) async fn execute() -> anyhow::Result<()> {
         state
             .page_metas
             .insert(page_id.clone(), new_page_meta.clone());
+        match new_page_meta.title.as_deref() {
+            None => {
+                // do nothing
+            }
+            Some(new_title) => {
+                state
+                    .page_titles
+                    .entry(new_title.to_owned())
+                    .or_insert_with(std::collections::BTreeSet::new)
+                    .insert(page_id.clone());
+            }
+        }
 
         Ok(())
     }
@@ -152,6 +194,10 @@ pub(super) async fn execute() -> anyhow::Result<()> {
         .route(
             "/styles/index.css",
             axum::routing::get(self::handler::get_style_index),
+        )
+        .route(
+            "/titles/{title}",
+            axum::routing::get(self::handler::get_page_by_title),
         )
         .with_state(state);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;

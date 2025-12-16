@@ -47,6 +47,8 @@ pub(super) async fn execute() -> anyhow::Result<()> {
         }
     }
 
+    let port = config.port.unwrap_or(3000_u16);
+
     let watch_dir = config.data_dir.clone();
     let state = std::sync::Arc::new(std::sync::Mutex::new(State {
         backlinks,
@@ -200,7 +202,10 @@ pub(super) async fn execute() -> anyhow::Result<()> {
             axum::routing::get(self::handler::get_page_by_title),
         )
         .with_state(state);
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;
+
+    let ip_addr = <std::net::IpAddr as std::str::FromStr>::from_str("127.0.0.1")
+        .expect("127.0.0.1 to be valid as IpAddr");
+    let listener = tokio::net::TcpListener::bind((ip_addr, port)).await?;
     axum::serve(listener, router).await?;
     Ok(())
 }

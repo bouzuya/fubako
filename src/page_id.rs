@@ -11,10 +11,6 @@ impl PageId {
     pub fn root() -> Self {
         Self("README".to_owned())
     }
-
-    pub fn is_root(&self) -> bool {
-        self.0 == "README"
-    }
 }
 
 impl std::fmt::Display for PageId {
@@ -80,14 +76,6 @@ mod tests {
     fn test_impl_page_id_root() {
         let page_id = PageId::root();
         assert_eq!(page_id.0, "README");
-    }
-
-    #[test]
-    fn test_impl_page_id_is_root() {
-        let page_id = PageId::new();
-        assert_eq!(page_id.is_root(), false);
-        let page_id = PageId::root();
-        assert_eq!(page_id.is_root(), true);
     }
 
     #[test]

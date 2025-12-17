@@ -10,6 +10,19 @@ pub(crate) struct Args {
 pub(super) async fn execute(Args { editor, page_id }: Args) -> anyhow::Result<()> {
     let config = crate::config::Config::load().await?;
     let path = crate::page_io::PageIo::page_path(&config, &page_id);
-    std::process::Command::new(editor).arg(path).status()?;
+    let editor = shell_words::split(&editor)?;
+    std::process::Command::new(&editor[0])
+        .args(&editor[1..])
+        .arg(path)
+        .status()?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_shell_words() -> anyhow::Result<()> {
+        assert_eq!(shell_words::split("code --wait")?, vec!["code", "--wait"]);
+        Ok(())
+    }
 }

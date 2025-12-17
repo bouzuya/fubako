@@ -19,6 +19,11 @@
             </ol>
         </div>
 
+        <div class="page_title_section">
+            <h2>Page Title</h2>
+            <p><a href="/titles/{{ title | urlencode_strict }}">/titles/{{ title }}</a></p>
+        </div>
+
         <div class="search_section">
             <form action="/pages" method="get">
                 <input name="q" type="text" value="" />

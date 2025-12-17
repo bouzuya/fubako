@@ -8,7 +8,7 @@ nav {
     align-items: flex-start;
     border-bottom: 1px solid #000000;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 1fr 2fr 1fr 1fr;
     gap: 8px;
     justify-content: space-between;
     padding: 16px;
@@ -154,4 +154,19 @@ nav {
 
 .content_section {
     padding: 16px;
+}
+
+.page_title_section {
+    overflow: hidden;
+
+    & h2 {
+        display: none;
+    }
+
+    & p {
+        margin: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 }

@@ -57,9 +57,8 @@ impl PageIo {
         config: &crate::config::Config,
         page_id: &crate::page_id::PageId,
     ) -> anyhow::Result<crate::page_meta::PageMeta> {
-        let path_buf = Self::page_path(config, page_id);
-        let md = std::fs::read_to_string(path_buf).context("read page")?;
-        let page_meta = crate::page_meta::PageMeta::from_markdown(&md);
+        let content = Self::read_page_raw_content(config, page_id)?;
+        let page_meta = crate::page_meta::PageMeta::from_markdown(&content);
         Ok(page_meta)
     }
 
@@ -67,13 +66,21 @@ impl PageIo {
         config: &crate::config::Config,
         page_id: &crate::page_id::PageId,
     ) -> anyhow::Result<String> {
+        let content = Self::read_page_raw_content(config, page_id)?;
+        convert_to_html(content)
+    }
+
+    pub(crate) fn read_page_raw_content(
+        config: &crate::config::Config,
+        page_id: &crate::page_id::PageId,
+    ) -> anyhow::Result<String> {
         let path = Self::page_path(config, &page_id);
         let md = std::fs::read_to_string(path).context("not found")?;
-        f(md)
+        Ok(md)
     }
 }
 
-fn f(md: String) -> anyhow::Result<String> {
+fn convert_to_html(md: String) -> anyhow::Result<String> {
     let syntax_set = syntect::parsing::SyntaxSet::load_defaults_newlines();
     let theme_set = syntect::highlighting::ThemeSet::load_defaults();
 

@@ -1,7 +1,7 @@
 #[derive(Debug, askama::Template)]
 #[template(path = "get.html")]
 pub struct GetResponse {
-    pub(crate) backlinks: Vec<String>,
+    pub(crate) backlinks: Vec<(String, String)>,
     pub(crate) html: String,
     pub(crate) id: String,
     pub(crate) title: String,
@@ -33,7 +33,20 @@ pub async fn handle(
         backlinks: state
             .backlinks
             .get(&page_id)
-            .map(|set| set.iter().map(|id| id.to_string()).collect::<Vec<String>>())
+            .map(|set| {
+                set.iter()
+                    .map(|id| -> (String, String) {
+                        (
+                            id.to_string(),
+                            state
+                                .page_metas
+                                .get(id)
+                                .and_then(|it| it.title.clone())
+                                .unwrap_or_default(),
+                        )
+                    })
+                    .collect::<Vec<(String, String)>>()
+            })
             .unwrap_or_default(),
         html,
         id: page_id.to_string(),

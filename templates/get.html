@@ -40,8 +40,11 @@
         <div class="backlinks_section">
             <h2>Backlinks</h2>
             <ul>
-                {% for page_id in backlinks %}
-                <li><a href="/{{ page_id }}">{{ page_id }}</a></li>
+                {% for (page_id, page_title) in backlinks %}
+                <li>
+                    <a href="/{{ page_id }}">{{ page_id }}</a>
+                    <a href="/titles/{{ page_title | urlencode_strict }}">{{ page_title }}</a>
+                </li>
                 {% endfor %}
             </ul>
         </div>

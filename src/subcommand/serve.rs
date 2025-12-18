@@ -197,6 +197,7 @@ pub(super) async fn execute() -> anyhow::Result<()> {
             "/styles/index.css",
             axum::routing::get(self::handler::get_style_index),
         )
+        .route("/titles", axum::routing::get(self::handler::list_titles))
         .route(
             "/titles/{title}",
             axum::routing::get(self::handler::get_page_by_title),

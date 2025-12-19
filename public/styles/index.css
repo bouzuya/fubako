@@ -120,7 +120,8 @@ nav {
     }
 }
 
-.index_section {
+.index_section,
+.titles_section {
     align-items: flex-end;
     display: flex;
     flex-direction: column;

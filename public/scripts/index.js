@@ -2,6 +2,7 @@ function addClipboardCopyButton() {
     const li = document.querySelector(".breadcrumb_section > ol > li:nth-child(2)");
     if (li !== null) {
         const pageId = li.textContent.trim();
+        if (pageId === "pages" || pageId === "titles") return;
         const button = document.createElement("button");
         button.type = "button";
         button.className = "clipboard_copy_button";

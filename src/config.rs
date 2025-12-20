@@ -1,12 +1,42 @@
 use anyhow::Context;
 
-#[derive(serde::Deserialize)]
 pub(crate) struct Config {
     pub(crate) data_dir: std::path::PathBuf,
     pub(crate) google_application_credentials: std::path::PathBuf,
     pub(crate) image_bucket_name: String,
     pub(crate) image_object_prefix: String,
     pub(crate) port: Option<u16>,
+}
+
+#[derive(serde::Deserialize)]
+pub(crate) struct ConfigJson {
+    pub(crate) data_dir: std::path::PathBuf,
+    pub(crate) google_application_credentials: std::path::PathBuf,
+    pub(crate) image_bucket_name: String,
+    pub(crate) image_object_prefix: String,
+    pub(crate) port: Option<u16>,
+}
+
+impl TryFrom<ConfigJson> for Config {
+    type Error = anyhow::Error;
+
+    fn try_from(
+        ConfigJson {
+            data_dir,
+            google_application_credentials,
+            image_bucket_name,
+            image_object_prefix,
+            port,
+        }: ConfigJson,
+    ) -> Result<Self, Self::Error> {
+        Ok(Self {
+            data_dir,
+            google_application_credentials,
+            image_bucket_name,
+            image_object_prefix,
+            port,
+        })
+    }
 }
 
 impl Config {
@@ -25,7 +55,10 @@ impl std::str::FromStr for Config {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        serde_json::from_str(s).context("failed to parse config")
+        let config_json =
+            serde_json::from_str::<ConfigJson>(&s).context("failed to parse config file")?;
+        let config = Config::try_from(config_json)?;
+        Ok(config)
     }
 }
 

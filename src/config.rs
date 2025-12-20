@@ -1,11 +1,21 @@
 use anyhow::Context;
 
 pub(crate) struct Config {
-    pub(crate) data_dir: std::path::PathBuf,
+    data_dir: std::path::PathBuf,
     pub(crate) google_application_credentials: std::path::PathBuf,
     pub(crate) image_bucket_name: String,
     pub(crate) image_object_prefix: String,
     pub(crate) port: Option<u16>,
+}
+
+impl Config {
+    pub(crate) fn data_dir(&self) -> &std::path::Path {
+        &self.data_dir
+    }
+
+    pub(crate) fn images_dir(&self) -> std::path::PathBuf {
+        self.data_dir.join("images")
+    }
 }
 
 #[derive(serde::Deserialize)]
@@ -82,6 +92,24 @@ mod tests {
     }
 
     #[test]
+    fn test_impl_config_data_dir() -> anyhow::Result<()> {
+        let data_dir = <std::path::PathBuf as std::str::FromStr>::from_str("/path/to/data_dir")?;
+        let mut config = build_config()?;
+        config.data_dir = data_dir.clone();
+        assert_eq!(config.data_dir(), data_dir);
+        Ok(())
+    }
+
+    #[test]
+    fn test_impl_config_images_dir() -> anyhow::Result<()> {
+        let data_dir = <std::path::PathBuf as std::str::FromStr>::from_str("/path/to/data_dir")?;
+        let mut config = build_config()?;
+        config.data_dir = data_dir.clone();
+        assert_eq!(config.images_dir(), data_dir.join("images"));
+        Ok(())
+    }
+
+    #[test]
     fn test_impl_config_load() {
         // TODO: Add test for Config::load
     }
@@ -110,5 +138,19 @@ mod tests {
         assert_eq!(config.image_object_prefix, "images/");
         assert_eq!(config.port, Some(8080));
         Ok(())
+    }
+
+    fn build_config() -> anyhow::Result<Config> {
+        let s = r#"
+        {
+            "data_dir": "/path/to/data/dir",
+            "google_application_credentials": "/path/to/credentials.json",
+            "image_bucket_name": "my-image-bucket",
+            "image_object_prefix": "images/",
+            "port": 8080
+        }
+        "#;
+        let config = <Config as std::str::FromStr>::from_str(s)?;
+        Ok(config)
     }
 }

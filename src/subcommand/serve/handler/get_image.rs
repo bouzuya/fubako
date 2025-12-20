@@ -7,8 +7,7 @@ pub async fn handle(
     let state = state.lock().map_err(|_| axum::http::StatusCode::CONFLICT)?;
     let images_dir = state
         .config
-        .data_dir
-        .join("images")
+        .images_dir()
         .canonicalize()
         .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?;
     let image_file_path = images_dir

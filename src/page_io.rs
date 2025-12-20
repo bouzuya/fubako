@@ -27,7 +27,7 @@ impl PageIo {
         page_id: &crate::page_id::PageId,
     ) -> std::path::PathBuf {
         config
-            .data_dir
+            .data_dir()
             .join(page_id.to_string())
             .with_extension("md")
     }
@@ -35,7 +35,7 @@ impl PageIo {
     pub(crate) fn read_page_ids(
         config: &crate::config::Config,
     ) -> anyhow::Result<std::collections::BTreeSet<crate::page_id::PageId>> {
-        let read_dir = std::fs::read_dir(&config.data_dir).context("data dir not found")?;
+        let read_dir = std::fs::read_dir(config.data_dir()).context("data dir not found")?;
         let mut page_ids = std::collections::BTreeSet::new();
         for dir_entry in read_dir {
             let dir_entry = dir_entry.context("dir_entry")?;

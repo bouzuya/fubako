@@ -14,7 +14,7 @@ pub(crate) struct Args {
 
 pub(super) async fn execute(Args { name, path, push }: Args) -> anyhow::Result<()> {
     let config = crate::config::Config::load().await?;
-    let images_dir = config.data_dir.join("images");
+    let images_dir = config.images_dir();
     tokio::fs::create_dir_all(&images_dir).await?;
 
     let name = name

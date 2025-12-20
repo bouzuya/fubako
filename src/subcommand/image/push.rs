@@ -10,7 +10,7 @@ pub(super) async fn execute(args: Args) -> anyhow::Result<()> {
     let config = crate::config::Config::load().await?;
     let image_bucket_name = config.image_bucket_name.clone();
     let image_object_prefix = config.image_object_prefix.clone();
-    let images_dir = config.data_dir.join("images").canonicalize()?;
+    let images_dir = config.images_dir().canonicalize()?;
 
     let image_names = {
         let local_image_names = crate::util::list_local_image_names(&images_dir)?;

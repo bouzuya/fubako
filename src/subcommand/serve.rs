@@ -49,7 +49,7 @@ pub(super) async fn execute() -> anyhow::Result<()> {
 
     let port = config.port.unwrap_or(3000_u16);
 
-    let watch_dir = config.data_dir.clone();
+    let watch_dir = config.data_dir().to_path_buf();
     let state = std::sync::Arc::new(std::sync::Mutex::new(State {
         backlinks,
         config,

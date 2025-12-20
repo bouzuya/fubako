@@ -2,8 +2,7 @@ use predicates::prelude::PredicateBooleanExt;
 
 #[test]
 fn test_no_subcommand() {
-    assert_cmd::Command::new("cargo")
-        .args(["run"])
+    assert_cmd::Command::new(assert_cmd::cargo::cargo_bin!("fubako"))
         .assert()
         .failure()
         .stderr(

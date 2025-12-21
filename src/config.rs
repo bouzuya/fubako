@@ -3,7 +3,7 @@ use anyhow::Context;
 pub(crate) struct Config {
     data_dir: std::path::PathBuf,
     pub(crate) image_sync: ConfigImageSync,
-    pub(crate) port: Option<u16>,
+    port: Option<u16>,
 }
 
 #[derive(Clone)]
@@ -20,6 +20,10 @@ impl Config {
 
     pub(crate) fn images_dir(&self) -> std::path::PathBuf {
         self.data_dir.join("images")
+    }
+
+    pub(crate) fn port(&self) -> u16 {
+        self.port.unwrap_or(3000_u16)
     }
 }
 
@@ -136,6 +140,19 @@ mod tests {
         let mut config = build_config()?;
         config.data_dir = data_dir.clone();
         assert_eq!(config.images_dir(), data_dir.join("images"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_impl_config_port() -> anyhow::Result<()> {
+        let mut config_with_port = build_config()?;
+        config_with_port.port = Some(8080);
+        assert_eq!(config_with_port.port(), 8080);
+
+        let mut config_without_port = build_config()?;
+        config_without_port.port = None;
+        assert_eq!(config_without_port.port(), 3000);
+
         Ok(())
     }
 

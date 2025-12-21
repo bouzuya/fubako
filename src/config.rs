@@ -2,7 +2,7 @@ use anyhow::Context;
 
 pub(crate) struct Config {
     data_dir: std::path::PathBuf,
-    pub(crate) image_sync: ConfigImageSync,
+    image_sync: ConfigImageSync,
     port: Option<u16>,
 }
 
@@ -16,6 +16,10 @@ pub(crate) struct ConfigImageSync {
 impl Config {
     pub(crate) fn data_dir(&self) -> &std::path::Path {
         &self.data_dir
+    }
+
+    pub(crate) fn image_sync(&self) -> Option<ConfigImageSync> {
+        Some(self.image_sync.clone())
     }
 
     pub(crate) fn images_dir(&self) -> std::path::PathBuf {
@@ -144,6 +148,11 @@ mod tests {
     }
 
     #[test]
+    fn test_impl_config_load() {
+        // TODO: Add test for Config::load
+    }
+
+    #[test]
     fn test_impl_config_port() -> anyhow::Result<()> {
         let mut config_with_port = build_config()?;
         config_with_port.port = Some(8080);
@@ -154,11 +163,6 @@ mod tests {
         assert_eq!(config_without_port.port(), 3000);
 
         Ok(())
-    }
-
-    #[test]
-    fn test_impl_config_load() {
-        // TODO: Add test for Config::load
     }
 
     #[test]

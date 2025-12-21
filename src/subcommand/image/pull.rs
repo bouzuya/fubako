@@ -10,15 +10,21 @@ pub(crate) struct Args {
 
 pub(super) async fn execute(args: Args) -> anyhow::Result<()> {
     let config = crate::config::Config::load().await?;
-    let image_bucket_name = config.image_sync.bucket_name.clone();
+    let image_sync_config = match config.image_sync() {
+        Some(it) => it,
+        None => {
+            anyhow::bail!("image sync is not configured");
+        }
+    };
+    let image_bucket_name = image_sync_config.bucket_name.clone();
     let images_dir = config.images_dir();
     tokio::fs::create_dir_all(&images_dir).await?;
 
     let image_names = {
         let remote_image_names = crate::util::list_remote_image_names(
-            &config.image_sync.google_application_credentials,
-            &config.image_sync.bucket_name,
-            &config.image_sync.object_prefix,
+            &image_sync_config.google_application_credentials,
+            &image_sync_config.bucket_name,
+            &image_sync_config.object_prefix,
         )
         .await?;
         let local_image_names = crate::util::list_local_image_names(&images_dir)?;
@@ -32,7 +38,7 @@ pub(super) async fn execute(args: Args) -> anyhow::Result<()> {
     };
 
     let service_account_key_content =
-        std::fs::read_to_string(&config.image_sync.google_application_credentials)
+        std::fs::read_to_string(&image_sync_config.google_application_credentials)
             .context("failed to read service account key file")?;
     let service_account_key =
         serde_json::from_str::<serde_json::Value>(&service_account_key_content)
@@ -49,7 +55,7 @@ pub(super) async fn execute(args: Args) -> anyhow::Result<()> {
         let mut read_object_response = client
             .read_object(
                 format!("projects/_/buckets/{image_bucket_name}"),
-                format!("{}{}", config.image_sync.object_prefix, image_name),
+                format!("{}{}", image_sync_config.object_prefix, image_name),
             )
             .send()
             .await?;

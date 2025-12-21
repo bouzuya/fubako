@@ -2,10 +2,14 @@ use anyhow::Context;
 
 pub(crate) struct Config {
     data_dir: std::path::PathBuf,
-    pub(crate) google_application_credentials: std::path::PathBuf,
-    pub(crate) image_bucket_name: String,
-    pub(crate) image_object_prefix: String,
+    pub(crate) image_sync: ConfigImageSync,
     pub(crate) port: Option<u16>,
+}
+
+pub(crate) struct ConfigImageSync {
+    pub(crate) bucket_name: String,
+    pub(crate) google_application_credentials: std::path::PathBuf,
+    pub(crate) object_prefix: String,
 }
 
 impl Config {
@@ -41,9 +45,11 @@ impl TryFrom<ConfigJson> for Config {
     ) -> Result<Self, Self::Error> {
         Ok(Self {
             data_dir,
-            google_application_credentials,
-            image_bucket_name,
-            image_object_prefix,
+            image_sync: ConfigImageSync {
+                google_application_credentials,
+                bucket_name: image_bucket_name,
+                object_prefix: image_object_prefix,
+            },
             port,
         })
     }
@@ -131,11 +137,11 @@ mod tests {
             std::path::PathBuf::from("/path/to/data/dir")
         );
         assert_eq!(
-            config.google_application_credentials,
+            config.image_sync.google_application_credentials,
             std::path::PathBuf::from("/path/to/credentials.json")
         );
-        assert_eq!(config.image_bucket_name, "my-image-bucket");
-        assert_eq!(config.image_object_prefix, "images/");
+        assert_eq!(config.image_sync.bucket_name, "my-image-bucket");
+        assert_eq!(config.image_sync.object_prefix, "images/");
         assert_eq!(config.port, Some(8080));
         Ok(())
     }

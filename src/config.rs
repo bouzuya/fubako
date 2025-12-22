@@ -2,89 +2,15 @@ use anyhow::Context;
 
 pub(crate) struct Config {
     data_dir: std::path::PathBuf,
-    image_sync: ConfigImageSync,
+    image_sync: Option<ConfigImageSync>,
     port: Option<u16>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct ConfigImageSync {
     pub(crate) bucket_name: String,
     pub(crate) google_application_credentials: std::path::PathBuf,
     pub(crate) object_prefix: String,
-}
-
-impl Config {
-    pub(crate) fn data_dir(&self) -> &std::path::Path {
-        &self.data_dir
-    }
-
-    pub(crate) fn image_sync(&self) -> Option<ConfigImageSync> {
-        Some(self.image_sync.clone())
-    }
-
-    pub(crate) fn images_dir(&self) -> std::path::PathBuf {
-        self.data_dir.join("images")
-    }
-
-    pub(crate) fn port(&self) -> u16 {
-        self.port.unwrap_or(3000_u16)
-    }
-}
-
-#[derive(serde::Deserialize)]
-pub(crate) struct ConfigJson {
-    pub(crate) data_dir: std::path::PathBuf,
-    pub(crate) google_application_credentials: std::path::PathBuf,
-    pub(crate) image_bucket_name: String,
-    pub(crate) image_object_prefix: String,
-    pub(crate) image_sync: Option<ConfigImageSyncJson>,
-    pub(crate) port: Option<u16>,
-}
-
-#[derive(serde::Deserialize)]
-pub(crate) struct ConfigImageSyncJson {
-    pub(crate) bucket_name: String,
-    pub(crate) google_application_credentials: std::path::PathBuf,
-    pub(crate) object_prefix: String,
-}
-
-impl TryFrom<ConfigJson> for Config {
-    type Error = anyhow::Error;
-
-    fn try_from(
-        ConfigJson {
-            data_dir,
-            google_application_credentials,
-            image_bucket_name,
-            image_object_prefix,
-            image_sync,
-            port,
-        }: ConfigJson,
-    ) -> Result<Self, Self::Error> {
-        Ok(Self {
-            data_dir,
-            image_sync: image_sync
-                .map(
-                    |ConfigImageSyncJson {
-                         bucket_name,
-                         google_application_credentials,
-                         object_prefix,
-                     }| {
-                        ConfigImageSync {
-                            bucket_name,
-                            google_application_credentials,
-                            object_prefix,
-                        }
-                    },
-                )
-                .unwrap_or_else(|| ConfigImageSync {
-                    bucket_name: image_bucket_name,
-                    google_application_credentials,
-                    object_prefix: image_object_prefix,
-                }),
-            port,
-        })
-    }
 }
 
 impl Config {
@@ -96,6 +22,22 @@ impl Config {
         let config_file_content =
             std::fs::read_to_string(config_file_path).context("failed to read config file")?;
         <Self as std::str::FromStr>::from_str(&config_file_content)
+    }
+
+    pub(crate) fn data_dir(&self) -> &std::path::Path {
+        &self.data_dir
+    }
+
+    pub(crate) fn image_sync(&self) -> Option<ConfigImageSync> {
+        self.image_sync.clone()
+    }
+
+    pub(crate) fn images_dir(&self) -> std::path::PathBuf {
+        self.data_dir.join("images")
+    }
+
+    pub(crate) fn port(&self) -> u16 {
+        self.port.unwrap_or(3000_u16)
     }
 }
 
@@ -110,129 +52,141 @@ impl std::str::FromStr for Config {
     }
 }
 
+#[derive(serde::Deserialize)]
+struct ConfigJson {
+    data_dir: std::path::PathBuf,
+    image_sync: Option<ConfigImageSyncJson>,
+    port: Option<u16>,
+}
+
+#[derive(Debug, PartialEq, serde::Deserialize)]
+struct ConfigImageSyncJson {
+    bucket_name: String,
+    google_application_credentials: std::path::PathBuf,
+    object_prefix: String,
+}
+
+impl TryFrom<ConfigJson> for Config {
+    type Error = anyhow::Error;
+
+    fn try_from(
+        ConfigJson {
+            data_dir,
+            image_sync,
+            port,
+        }: ConfigJson,
+    ) -> Result<Self, Self::Error> {
+        Ok(Self {
+            data_dir,
+            image_sync: image_sync.map(
+                |ConfigImageSyncJson {
+                     bucket_name,
+                     google_application_credentials,
+                     object_prefix,
+                 }| {
+                    ConfigImageSync {
+                        bucket_name,
+                        google_application_credentials,
+                        object_prefix,
+                    }
+                },
+            ),
+            port,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_config_port_is_option() -> anyhow::Result<()> {
+    fn test_config_data_dir() -> anyhow::Result<()> {
         let s = r#"
         {
-            "data_dir": "/path/to/data/dir",
-            "google_application_credentials": "/path/to/credentials.json",
-            "image_bucket_name": "my-image-bucket",
-            "image_object_prefix": "images/"
+            "data_dir": "/path/to/data/dir"
         }
         "#;
         let config = <Config as std::str::FromStr>::from_str(s)?;
-        assert_eq!(config.port, None);
+        assert_eq!(
+            config.data_dir(),
+            std::path::PathBuf::from("/path/to/data/dir").as_path()
+        );
         Ok(())
     }
 
     #[test]
-    fn test_impl_config_data_dir() -> anyhow::Result<()> {
-        let data_dir = <std::path::PathBuf as std::str::FromStr>::from_str("/path/to/data_dir")?;
-        let mut config = build_config()?;
-        config.data_dir = data_dir.clone();
-        assert_eq!(config.data_dir(), data_dir);
+    fn test_config_image_sync() -> anyhow::Result<()> {
+        let s = r#"
+        {
+            "data_dir": "/path/to/data/dir"
+        }
+        "#;
+        let config = <Config as std::str::FromStr>::from_str(s)?;
+        assert!(config.image_sync().is_none());
+
+        let s = r#"
+        {
+            "data_dir": "/path/to/data/dir",
+            "image_sync": {
+                "bucket_name": "my-image-bucket",
+                "google_application_credentials": "/path/to/credentials.json",
+                "object_prefix": "images/"
+            }
+        }
+        "#;
+        let config = <Config as std::str::FromStr>::from_str(s)?;
+        assert_eq!(
+            config.image_sync(),
+            Some(ConfigImageSync {
+                bucket_name: "my-image-bucket".to_owned(),
+                google_application_credentials: std::path::PathBuf::from(
+                    "/path/to/credentials.json"
+                ),
+                object_prefix: "images/".to_owned(),
+            })
+        );
         Ok(())
     }
 
     #[test]
-    fn test_impl_config_images_dir() -> anyhow::Result<()> {
-        let data_dir = <std::path::PathBuf as std::str::FromStr>::from_str("/path/to/data_dir")?;
-        let mut config = build_config()?;
-        config.data_dir = data_dir.clone();
-        assert_eq!(config.images_dir(), data_dir.join("images"));
+    fn test_config_images_dir() -> anyhow::Result<()> {
+        let s = r#"
+        {
+            "data_dir": "/path/to/data/dir"
+        }
+        "#;
+        let config = <Config as std::str::FromStr>::from_str(s)?;
+        assert_eq!(
+            config.images_dir(),
+            std::path::PathBuf::from("/path/to/data/dir/images")
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_config_port() -> anyhow::Result<()> {
+        let s = r#"
+        {
+            "data_dir": "/path/to/data/dir"
+        }
+        "#;
+        let config = <Config as std::str::FromStr>::from_str(s)?;
+        assert_eq!(config.port(), 3000);
+
+        let s = r#"
+        {
+            "data_dir": "/path/to/data/dir",
+            "port": 8080
+        }
+        "#;
+        let config = <Config as std::str::FromStr>::from_str(s)?;
+        assert_eq!(config.port(), 8080);
         Ok(())
     }
 
     #[test]
     fn test_impl_config_load() {
         // TODO: Add test for Config::load
-    }
-
-    #[test]
-    fn test_impl_config_port() -> anyhow::Result<()> {
-        let mut config_with_port = build_config()?;
-        config_with_port.port = Some(8080);
-        assert_eq!(config_with_port.port(), 8080);
-
-        let mut config_without_port = build_config()?;
-        config_without_port.port = None;
-        assert_eq!(config_without_port.port(), 3000);
-
-        Ok(())
-    }
-
-    #[test]
-    fn test_impl_from_str_for_config_no_image_sync() -> anyhow::Result<()> {
-        let s = r#"
-        {
-            "data_dir": "/path/to/data/dir",
-            "google_application_credentials": "/path/to/credentials.json",
-            "image_bucket_name": "my-image-bucket",
-            "image_object_prefix": "images/",
-            "port": 8080
-        }
-        "#;
-        let config = <Config as std::str::FromStr>::from_str(s)?;
-        assert_eq!(
-            config.data_dir,
-            std::path::PathBuf::from("/path/to/data/dir")
-        );
-        assert_eq!(
-            config.image_sync.google_application_credentials,
-            std::path::PathBuf::from("/path/to/credentials.json")
-        );
-        assert_eq!(config.image_sync.bucket_name, "my-image-bucket");
-        assert_eq!(config.image_sync.object_prefix, "images/");
-        assert_eq!(config.port, Some(8080));
-        Ok(())
-    }
-
-    #[test]
-    fn test_impl_from_str_for_config_with_image_sync() -> anyhow::Result<()> {
-        let s = r#"
-        {
-            "data_dir": "/path/to/data/dir",
-            "google_application_credentials": "/path/to/old/credentials.json",
-            "image_bucket_name": "my-image-bucket-old",
-            "image_object_prefix": "images_old/",
-            "image_sync": {
-                "bucket_name": "my-image-bucket",
-                "google_application_credentials": "/path/to/credentials.json",
-                "object_prefix": "images/"
-            },
-            "port": 8080
-        }
-        "#;
-        let config = <Config as std::str::FromStr>::from_str(s)?;
-        assert_eq!(
-            config.data_dir,
-            std::path::PathBuf::from("/path/to/data/dir")
-        );
-        assert_eq!(
-            config.image_sync.google_application_credentials,
-            std::path::PathBuf::from("/path/to/credentials.json")
-        );
-        assert_eq!(config.image_sync.bucket_name, "my-image-bucket");
-        assert_eq!(config.image_sync.object_prefix, "images/");
-        assert_eq!(config.port, Some(8080));
-        Ok(())
-    }
-
-    fn build_config() -> anyhow::Result<Config> {
-        let s = r#"
-        {
-            "data_dir": "/path/to/data/dir",
-            "google_application_credentials": "/path/to/credentials.json",
-            "image_bucket_name": "my-image-bucket",
-            "image_object_prefix": "images/",
-            "port": 8080
-        }
-        "#;
-        let config = <Config as std::str::FromStr>::from_str(s)?;
-        Ok(config)
     }
 }

@@ -8,14 +8,14 @@ function addPageIdCopyButton() {
 }
 
 function addTitleUrlCopyButton() {
-    const p = document.querySelector(".page_title_section > p");
-    if (p === null) return;
-    const a = p.querySelector("a");
+    const div = document.querySelector(".page_title_section");
+    if (div === null) return;
+    const a = div.querySelector("p a");
     if (a === null) return;
     const href = a.getAttribute("href");
     if (href === null) return;
     const button = createClipboardCopyButton(href);
-    p.appendChild(button);
+    div.appendChild(button);
 }
 
 // string -> HTMLButtonElement

@@ -15,14 +15,19 @@ pub(crate) struct ConfigImageSync {
 }
 
 impl Config {
-    pub(crate) async fn load() -> anyhow::Result<Config> {
+    pub(crate) async fn load_from(path: &std::path::Path) -> anyhow::Result<Self> {
+        let config_file_content = tokio::fs::read_to_string(path)
+            .await
+            .context("failed to read config file")?;
+        <Self as std::str::FromStr>::from_str(&config_file_content)
+    }
+
+    pub(crate) async fn load() -> anyhow::Result<Self> {
         let xdg_dirs = xdg::BaseDirectories::with_prefix("fubako");
         let config_file_path = xdg_dirs
             .find_config_file("config.json")
             .context("config file not found")?;
-        let config_file_content =
-            std::fs::read_to_string(config_file_path).context("failed to read config file")?;
-        <Self as std::str::FromStr>::from_str(&config_file_content)
+        Self::load_from(&config_file_path).await
     }
 
     pub(crate) fn data_dir(&self) -> &std::path::Path {
@@ -189,5 +194,26 @@ mod tests {
     #[test]
     fn test_impl_config_load() {
         // TODO: Add test for Config::load
+    }
+
+    #[tokio::test]
+    async fn test_impl_config_load_from() -> anyhow::Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        let config_path = temp_dir.path().join("config.json");
+
+        let config_content = r#"
+        {
+            "data_dir": "/path/to/data/dir"
+        }
+        "#;
+        tokio::fs::write(&config_path, config_content).await?;
+
+        let config = Config::load_from(&config_path).await?;
+        assert_eq!(
+            config.data_dir(),
+            std::path::PathBuf::from("/path/to/data/dir").as_path()
+        );
+
+        Ok(())
     }
 }

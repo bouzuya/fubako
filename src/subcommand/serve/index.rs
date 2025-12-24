@@ -132,3 +132,106 @@ impl Index {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::str::FromStr;
+
+    #[test]
+    fn test_new() -> anyhow::Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        let data_dir = temp_dir.path().join("data");
+        std::fs::create_dir_all(&data_dir)?;
+
+        let page1_id = crate::page_id::PageId::from_str("20251224T000000Z")?;
+        let page1_content = r#"
+# Test Page 1
+
+This is a test page.
+"#;
+        std::fs::write(
+            data_dir.join(page1_id.to_string()).with_extension("md"),
+            page1_content,
+        )?;
+
+        let page2_id = crate::page_id::PageId::from_str("20251224T000001Z")?;
+        let page2_content = r#"---
+# Test Page 2
+
+Link to [[20251224T000000Z]].
+"#;
+        std::fs::write(
+            data_dir.join(page2_id.to_string()).with_extension("md"),
+            page2_content,
+        )?;
+
+        let config_content = format!(
+            r#"{{
+    "data_dir": "{}"
+}}"#,
+            data_dir.display()
+        );
+        let config = <crate::config::Config as FromStr>::from_str(&config_content)?;
+
+        let index = Index::new(config)?;
+
+        assert_eq!(
+            index.page_metas,
+            [
+                (
+                    page1_id.clone(),
+                    crate::page_meta::PageMeta {
+                        title: Some("Test Page 1".to_owned()),
+                        links: std::collections::BTreeSet::new(),
+                    },
+                ),
+                (
+                    page2_id.clone(),
+                    crate::page_meta::PageMeta {
+                        title: Some("Test Page 2".to_owned()),
+                        links: [page1_id.clone()]
+                            .into_iter()
+                            .collect::<std::collections::BTreeSet<_>>(),
+                    }
+                ),
+            ]
+            .into_iter()
+            .collect::<std::collections::BTreeMap<_, _>>()
+        );
+
+        assert_eq!(
+            index.page_titles,
+            [
+                (
+                    "Test Page 1".to_owned(),
+                    [page1_id.clone()]
+                        .into_iter()
+                        .collect::<std::collections::BTreeSet<_>>(),
+                ),
+                (
+                    "Test Page 2".to_owned(),
+                    [page2_id.clone()]
+                        .into_iter()
+                        .collect::<std::collections::BTreeSet<_>>(),
+                )
+            ]
+            .into_iter()
+            .collect::<std::collections::BTreeMap<_, _>>()
+        );
+
+        assert_eq!(
+            index.backlinks,
+            [(
+                page1_id.clone(),
+                [page2_id.clone()]
+                    .into_iter()
+                    .collect::<std::collections::BTreeSet<_>>(),
+            )]
+            .into_iter()
+            .collect::<std::collections::BTreeMap<_, _>>()
+        );
+
+        Ok(())
+    }
+}

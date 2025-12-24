@@ -1,5 +1,6 @@
 use anyhow::Context;
 
+#[derive(Clone)]
 pub(crate) struct Config {
     data_dir: std::path::PathBuf,
     image_sync: Option<ConfigImageSync>,

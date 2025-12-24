@@ -22,6 +22,7 @@ pub async fn handle(
 ) -> Result<GetResponse, axum::http::StatusCode> {
     let state = state.lock().map_err(|_| axum::http::StatusCode::CONFLICT)?;
     let page_meta = state
+        .index
         .page_metas
         .get(&page_id)
         .ok_or(axum::http::StatusCode::NOT_FOUND)?;
@@ -31,6 +32,7 @@ pub async fn handle(
 
     Ok(GetResponse {
         backlinks: state
+            .index
             .backlinks
             .get(&page_id)
             .map(|set| {
@@ -39,6 +41,7 @@ pub async fn handle(
                         (
                             id.to_string(),
                             state
+                                .index
                                 .page_metas
                                 .get(id)
                                 .and_then(|it| it.title.clone())

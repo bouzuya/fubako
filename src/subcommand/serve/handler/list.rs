@@ -32,6 +32,7 @@ pub async fn handle(
     let state = state.lock().map_err(|_| axum::http::StatusCode::CONFLICT)?;
     let config = &state.config;
     let page_metas = state
+        .index
         .page_metas
         .iter()
         .filter(|(page_id, _page_meta)| {

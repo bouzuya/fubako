@@ -33,13 +33,14 @@ pub async fn handle(
     let state = state.lock().map_err(|_| axum::http::StatusCode::CONFLICT)?;
 
     let page_id = crate::page_id::PageId::root();
-    match state.page_metas.get(&page_id) {
+    match state.index.page_metas.get(&page_id) {
         Some(page_meta) => {
             let html = crate::page_io::PageIo::read_page_content(&state.config, &page_id)
                 .map_err(|_| axum::http::StatusCode::NOT_FOUND)?;
 
             Ok(GetRootOrListPagesResponse::from(super::get::GetResponse {
                 backlinks: state
+                    .index
                     .backlinks
                     .get(&page_id)
                     .map(|set| {
@@ -48,6 +49,7 @@ pub async fn handle(
                                 (
                                     id.to_string(),
                                     state
+                                        .index
                                         .page_metas
                                         .get(id)
                                         .and_then(|it| it.title.clone())

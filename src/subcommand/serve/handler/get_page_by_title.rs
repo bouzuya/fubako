@@ -20,6 +20,7 @@ pub async fn handle(
 ) -> Result<GetPageByTitleResponse, axum::http::StatusCode> {
     let state = state.lock().map_err(|_| axum::http::StatusCode::CONFLICT)?;
     let page_ids = state
+        .index
         .page_titles
         .get(&title)
         .ok_or(axum::http::StatusCode::NOT_FOUND)?;

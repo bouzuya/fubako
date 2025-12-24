@@ -23,6 +23,7 @@ pub async fn handle(
 ) -> Result<ListTitlesResponse, axum::http::StatusCode> {
     let state = state.lock().map_err(|_| axum::http::StatusCode::CONFLICT)?;
     let page_titles = state
+        .index
         .page_titles
         .iter()
         .map(|(title, page_ids)| ListTitlesResponsePageTitle {

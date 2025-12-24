@@ -1,61 +1,23 @@
 mod handler;
+mod index;
 
 use anyhow::Context as _;
 
 struct State {
-    backlinks: std::collections::BTreeMap<
-        crate::page_id::PageId,
-        std::collections::BTreeSet<crate::page_id::PageId>,
-    >,
     config: crate::config::Config,
-    page_metas: std::collections::BTreeMap<crate::page_id::PageId, crate::page_meta::PageMeta>,
-    page_titles:
-        std::collections::BTreeMap<String, std::collections::BTreeSet<crate::page_id::PageId>>,
+    index: self::index::Index,
 }
 
 pub(super) async fn execute() -> anyhow::Result<()> {
     let config = crate::config::Config::load().await?;
 
     // create index
-    let page_ids = crate::page_io::PageIo::read_page_ids(&config)?;
-
-    let mut page_titles = std::collections::BTreeMap::new();
-    let mut page_metas = std::collections::BTreeMap::new();
-    for page_id in &page_ids {
-        let page_meta = crate::page_io::PageIo::read_page_meta(&config, page_id)?;
-        match page_meta.title.as_deref() {
-            None => {
-                // do nothing
-            }
-            Some(title) => {
-                page_titles
-                    .entry(title.to_owned())
-                    .or_insert_with(std::collections::BTreeSet::new)
-                    .insert(page_id.clone());
-            }
-        }
-        page_metas.insert(page_id.clone(), page_meta);
-    }
-
-    let mut backlinks = std::collections::BTreeMap::new();
-    for (page_id, page_meta) in &page_metas {
-        for linked_page_id in &page_meta.links {
-            backlinks
-                .entry(linked_page_id.clone())
-                .or_insert_with(std::collections::BTreeSet::new)
-                .insert(page_id.clone());
-        }
-    }
+    let index = self::index::Index::new(config.clone())?;
 
     let port = config.port();
 
     let watch_dir = config.data_dir().to_path_buf();
-    let state = std::sync::Arc::new(std::sync::Mutex::new(State {
-        backlinks,
-        config,
-        page_metas,
-        page_titles,
-    }));
+    let state = std::sync::Arc::new(std::sync::Mutex::new(State { config, index }));
 
     // run watcher
     fn update_page_meta(
@@ -67,78 +29,11 @@ pub(super) async fn execute() -> anyhow::Result<()> {
         let page_id = crate::page_io::PageIo::page_id(path)?;
 
         if !path.exists() {
-            let old_page_meta = state.page_metas.get(&page_id).cloned();
-            match old_page_meta {
-                Some(old_page_meta) => {
-                    // remove old links from backlinks
-                    for linked_page_id in &old_page_meta.links {
-                        if let Some(set) = state.backlinks.get_mut(linked_page_id) {
-                            set.remove(&page_id);
-                        }
-                    }
-                }
-                None => {
-                    // do nothing
-                }
-            }
+            state.index.remove(&page_id);
             return Ok(());
         }
 
-        let new_page_meta = crate::page_io::PageIo::read_page_meta(&state.config, &page_id)?;
-
-        let old_page_meta = state.page_metas.get(&page_id).cloned();
-        match old_page_meta {
-            Some(old_page_meta) => {
-                // remove old links from backlinks
-                for linked_page_id in &old_page_meta.links {
-                    if let Some(set) = state.backlinks.get_mut(linked_page_id) {
-                        set.remove(&page_id);
-                    }
-                }
-
-                // remove old title from page_titles
-                match old_page_meta.title.as_deref() {
-                    None => {
-                        // do nothing
-                    }
-                    Some(old_title) => {
-                        state
-                            .page_titles
-                            .entry(old_title.to_owned())
-                            .and_modify(|set| {
-                                set.remove(&page_id);
-                            });
-                    }
-                }
-            }
-            None => {
-                // do nothing
-            }
-        }
-
-        for linked_page_id in &new_page_meta.links {
-            state
-                .backlinks
-                .entry(linked_page_id.clone())
-                .or_insert_with(std::collections::BTreeSet::new)
-                .insert(page_id.clone());
-        }
-
-        state
-            .page_metas
-            .insert(page_id.clone(), new_page_meta.clone());
-        match new_page_meta.title.as_deref() {
-            None => {
-                // do nothing
-            }
-            Some(new_title) => {
-                state
-                    .page_titles
-                    .entry(new_title.to_owned())
-                    .or_insert_with(std::collections::BTreeSet::new)
-                    .insert(page_id.clone());
-            }
-        }
+        state.index.update(&page_id)?;
 
         Ok(())
     }

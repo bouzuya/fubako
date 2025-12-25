@@ -51,13 +51,23 @@ impl Index {
     }
 
     pub fn remove(&mut self, page_id: &crate::page_id::PageId) {
-        let old_page_meta = self.page_metas.get(page_id).cloned();
+        let old_page_meta = self.page_metas.remove(page_id);
         match old_page_meta {
             Some(old_page_meta) => {
                 // remove old links from backlinks
                 for linked_page_id in &old_page_meta.links {
                     if let Some(set) = self.backlinks.get_mut(linked_page_id) {
                         set.remove(page_id);
+                    }
+                }
+
+                // remove from page_titles
+                if let Some(title) = &old_page_meta.title {
+                    if let Some(set) = self.page_titles.get_mut(title) {
+                        set.remove(page_id);
+                        if set.is_empty() {
+                            self.page_titles.remove(title);
+                        }
                     }
                 }
             }
@@ -232,6 +242,103 @@ Link to [[20251224T000000Z]].
             .collect::<std::collections::BTreeMap<_, _>>()
         );
 
+        Ok(())
+    }
+
+    #[test]
+    fn test_remove() -> anyhow::Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        let data_dir = temp_dir.path().join("data");
+        std::fs::create_dir_all(&data_dir)?;
+
+        let page1_id = crate::page_id::PageId::from_str("20251224T000000Z")?;
+        let page1_content = r#"
+# Test Page 1
+
+This is a test page.
+"#;
+        std::fs::write(
+            data_dir.join(page1_id.to_string()).with_extension("md"),
+            page1_content,
+        )?;
+
+        let page2_id = crate::page_id::PageId::from_str("20251224T000001Z")?;
+        let page2_content = r#"---
+# Test Page 2
+
+Link to [[20251224T000000Z]].
+"#;
+        std::fs::write(
+            data_dir.join(page2_id.to_string()).with_extension("md"),
+            page2_content,
+        )?;
+
+        let page3_id = crate::page_id::PageId::from_str("20251224T000002Z")?;
+        let page3_content = r#"---
+# Test Page 3
+
+Link to [[20251224T000000Z]].
+"#;
+        std::fs::write(
+            data_dir.join(page3_id.to_string()).with_extension("md"),
+            page3_content,
+        )?;
+
+        let config_content = format!(
+            r#"{{
+    "data_dir": "{}"
+}}"#,
+            data_dir.display()
+        );
+        let config = <crate::config::Config as FromStr>::from_str(&config_content)?;
+
+        let mut index = Index::new(config)?;
+
+        // verify initial state
+        assert_eq!(index.page_metas.len(), 3);
+        assert!(index.page_titles.contains_key("Test Page 1"));
+        assert!(index.page_titles.contains_key("Test Page 2"));
+        assert!(index.page_titles.contains_key("Test Page 3"));
+        assert!(
+            // page1
+            // page2 -> page1
+            // page3 -> page1
+            index
+                .backlinks
+                .get(&page1_id)
+                .map(|it| it.len() == 2 && it.contains(&page2_id) && it.contains(&page3_id))
+                .unwrap_or(false)
+        );
+
+        index.remove(&page2_id);
+
+        assert_eq!(index.page_metas.len(), 2);
+        assert!(!index.page_metas.contains_key(&page2_id));
+        assert!(!index.page_titles.contains_key("Test Page 2"));
+        assert!(
+            index
+                .backlinks
+                .get(&page1_id)
+                .map(|it| it.len() == 1 && it.contains(&page3_id))
+                .unwrap_or(false)
+        );
+
+        index.remove(&page1_id);
+
+        assert_eq!(index.page_metas.len(), 1);
+        assert!(!index.page_metas.contains_key(&page1_id));
+        assert!(!index.page_titles.contains_key("Test Page 1"));
+
+        // removing non-existent page should not cause any issues
+        let non_existent_id = crate::page_id::PageId::from_str("20251225T000000Z")?;
+        index.remove(&non_existent_id);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_update() -> anyhow::Result<()> {
+        // TODO: Add test for Index::remove
         Ok(())
     }
 }

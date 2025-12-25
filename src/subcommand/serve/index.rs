@@ -154,26 +154,23 @@ mod tests {
         let data_dir = temp_dir.path().join("data");
         std::fs::create_dir_all(&data_dir)?;
 
-        let page1_id = crate::page_id::PageId::from_str("20251224T000000Z")?;
-        let page1_content = r#"
+        let page1_id = create_page(
+            &data_dir,
+            "20251224T000000Z",
+            r#"
 # Test Page 1
 
 This is a test page.
-"#;
-        std::fs::write(
-            data_dir.join(page1_id.to_string()).with_extension("md"),
-            page1_content,
+"#,
         )?;
-
-        let page2_id = crate::page_id::PageId::from_str("20251224T000001Z")?;
-        let page2_content = r#"---
+        let page2_id = create_page(
+            &data_dir,
+            "20251224T000001Z",
+            r#"---
 # Test Page 2
 
 Link to [[20251224T000000Z]].
-"#;
-        std::fs::write(
-            data_dir.join(page2_id.to_string()).with_extension("md"),
-            page2_content,
+"#,
         )?;
 
         let config_content = format!(
@@ -251,37 +248,32 @@ Link to [[20251224T000000Z]].
         let data_dir = temp_dir.path().join("data");
         std::fs::create_dir_all(&data_dir)?;
 
-        let page1_id = crate::page_id::PageId::from_str("20251224T000000Z")?;
-        let page1_content = r#"
+        let page1_id = create_page(
+            &data_dir,
+            "20251224T000000Z",
+            r#"
 # Test Page 1
 
 This is a test page.
-"#;
-        std::fs::write(
-            data_dir.join(page1_id.to_string()).with_extension("md"),
-            page1_content,
+"#,
         )?;
-
-        let page2_id = crate::page_id::PageId::from_str("20251224T000001Z")?;
-        let page2_content = r#"---
+        let page2_id = create_page(
+            &data_dir,
+            "20251224T000001Z",
+            r#"
 # Test Page 2
 
 Link to [[20251224T000000Z]].
-"#;
-        std::fs::write(
-            data_dir.join(page2_id.to_string()).with_extension("md"),
-            page2_content,
+"#,
         )?;
-
-        let page3_id = crate::page_id::PageId::from_str("20251224T000002Z")?;
-        let page3_content = r#"---
+        let page3_id = create_page(
+            &data_dir,
+            "20251224T000002Z",
+            r#"---
 # Test Page 3
 
 Link to [[20251224T000000Z]].
-"#;
-        std::fs::write(
-            data_dir.join(page3_id.to_string()).with_extension("md"),
-            page3_content,
+"#,
         )?;
 
         let config_content = format!(
@@ -340,5 +332,18 @@ Link to [[20251224T000000Z]].
     async fn test_update() -> anyhow::Result<()> {
         // TODO: Add test for Index::remove
         Ok(())
+    }
+
+    fn create_page(
+        data_dir: &std::path::Path,
+        page_id: &str,
+        page_content: &str,
+    ) -> anyhow::Result<crate::page_id::PageId> {
+        let page_id = crate::page_id::PageId::from_str(page_id)?;
+        std::fs::write(
+            data_dir.join(page_id.to_string()).with_extension("md"),
+            page_content,
+        )?;
+        Ok(page_id)
     }
 }

@@ -51,18 +51,19 @@ impl Index {
     }
 
     pub fn remove(&mut self, page_id: &crate::page_id::PageId) {
-        let old_page_meta = self.page_metas.remove(page_id);
-        match old_page_meta {
-            Some(old_page_meta) => {
+        // remove page_meta from page_metas
+        let page_meta = self.page_metas.remove(page_id);
+        match page_meta {
+            Some(page_meta) => {
                 // remove old links from backlinks
-                for linked_page_id in &old_page_meta.links {
+                for linked_page_id in &page_meta.links {
                     if let Some(set) = self.backlinks.get_mut(linked_page_id) {
                         set.remove(page_id);
                     }
                 }
 
                 // remove from page_titles
-                if let Some(title) = &old_page_meta.title {
+                if let Some(title) = &page_meta.title {
                     if let Some(set) = self.page_titles.get_mut(title) {
                         set.remove(page_id);
                         if set.is_empty() {
@@ -80,43 +81,7 @@ impl Index {
     pub fn update(&mut self, page_id: &crate::page_id::PageId) -> anyhow::Result<()> {
         let new_page_meta = crate::page_io::PageIo::read_page_meta(&self.config, page_id)?;
 
-        let old_page_meta = self.page_metas.get(page_id).cloned();
-        match old_page_meta {
-            Some(old_page_meta) => {
-                // remove old links from backlinks
-                for linked_page_id in &old_page_meta.links {
-                    if let Some(set) = self.backlinks.get_mut(linked_page_id) {
-                        set.remove(page_id);
-                    }
-                }
-
-                // remove old title from page_titles
-                match old_page_meta.title.as_deref() {
-                    None => {
-                        // do nothing
-                    }
-                    Some(old_title) => {
-                        self.page_titles
-                            .entry(old_title.to_owned())
-                            .and_modify(|set| {
-                                set.remove(page_id);
-                            });
-
-                        match self.page_titles.get(&old_title.to_owned()) {
-                            Some(set) if set.is_empty() => {
-                                self.page_titles.remove(&old_title.to_owned());
-                            }
-                            _ => {
-                                // do nothing
-                            }
-                        }
-                    }
-                }
-            }
-            None => {
-                // do nothing
-            }
-        }
+        self.remove(page_id);
 
         for linked_page_id in &new_page_meta.links {
             self.backlinks

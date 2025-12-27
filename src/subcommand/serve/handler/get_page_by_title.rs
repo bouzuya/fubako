@@ -22,7 +22,7 @@ pub async fn handle(
     let page_ids = state
         .index
         .page_titles
-        .get(&title)
+        .get(&Some(title))
         .ok_or(axum::http::StatusCode::NOT_FOUND)?;
     // FIXME: select page_id
     let page_id = page_ids.first().ok_or(axum::http::StatusCode::NOT_FOUND)?;

@@ -6,8 +6,10 @@ pub struct Index {
     config: crate::config::Config,
     pub(crate) page_metas:
         std::collections::BTreeMap<crate::page_id::PageId, crate::page_meta::PageMeta>,
-    pub(crate) page_titles:
-        std::collections::BTreeMap<String, std::collections::BTreeSet<crate::page_id::PageId>>,
+    pub(crate) page_titles: std::collections::BTreeMap<
+        Option<String>,
+        std::collections::BTreeSet<crate::page_id::PageId>,
+    >,
 }
 
 impl Index {
@@ -18,17 +20,10 @@ impl Index {
         let mut page_metas = std::collections::BTreeMap::new();
         for page_id in &page_ids {
             let page_meta = crate::page_io::PageIo::read_page_meta(&config, page_id)?;
-            match page_meta.title.as_deref() {
-                None => {
-                    // do nothing
-                }
-                Some(title) => {
-                    page_titles
-                        .entry(title.to_owned())
-                        .or_insert_with(std::collections::BTreeSet::new)
-                        .insert(page_id.clone());
-                }
-            }
+            page_titles
+                .entry(page_meta.title.clone())
+                .or_insert_with(std::collections::BTreeSet::new)
+                .insert(page_id.clone());
             page_metas.insert(page_id.clone(), page_meta);
         }
 
@@ -63,12 +58,11 @@ impl Index {
                 }
 
                 // remove from page_titles
-                if let Some(title) = &page_meta.title {
-                    if let Some(set) = self.page_titles.get_mut(title) {
-                        set.remove(page_id);
-                        if set.is_empty() {
-                            self.page_titles.remove(title);
-                        }
+                let title = page_meta.title.clone();
+                if let Some(set) = self.page_titles.get_mut(&title) {
+                    set.remove(page_id);
+                    if set.is_empty() {
+                        self.page_titles.remove(&title);
                     }
                 }
             }
@@ -92,17 +86,10 @@ impl Index {
 
         self.page_metas
             .insert(page_id.clone(), new_page_meta.clone());
-        match new_page_meta.title.as_deref() {
-            None => {
-                // do nothing
-            }
-            Some(new_title) => {
-                self.page_titles
-                    .entry(new_title.to_owned())
-                    .or_insert_with(std::collections::BTreeSet::new)
-                    .insert(page_id.clone());
-            }
-        }
+        self.page_titles
+            .entry(new_page_meta.title.clone())
+            .or_insert_with(std::collections::BTreeSet::new)
+            .insert(page_id.clone());
 
         Ok(())
     }
@@ -176,13 +163,13 @@ Link to [[20251224T000000Z]].
             index.page_titles,
             [
                 (
-                    "Test Page 1".to_owned(),
+                    Some("Test Page 1".to_owned()),
                     [page1_id.clone()]
                         .into_iter()
                         .collect::<std::collections::BTreeSet<_>>(),
                 ),
                 (
-                    "Test Page 2".to_owned(),
+                    Some("Test Page 2".to_owned()),
                     [page2_id.clone()]
                         .into_iter()
                         .collect::<std::collections::BTreeSet<_>>(),
@@ -253,9 +240,21 @@ Link to [[20251224T000000Z]].
 
         // verify initial state
         assert_eq!(index.page_metas.len(), 3);
-        assert!(index.page_titles.contains_key("Test Page 1"));
-        assert!(index.page_titles.contains_key("Test Page 2"));
-        assert!(index.page_titles.contains_key("Test Page 3"));
+        assert!(
+            index
+                .page_titles
+                .contains_key(&Some("Test Page 1".to_owned()))
+        );
+        assert!(
+            index
+                .page_titles
+                .contains_key(&Some("Test Page 2".to_owned()))
+        );
+        assert!(
+            index
+                .page_titles
+                .contains_key(&Some("Test Page 3".to_owned()))
+        );
         assert!(
             // page1
             // page2 -> page1
@@ -271,7 +270,11 @@ Link to [[20251224T000000Z]].
 
         assert_eq!(index.page_metas.len(), 2);
         assert!(!index.page_metas.contains_key(&page2_id));
-        assert!(!index.page_titles.contains_key("Test Page 2"));
+        assert!(
+            !index
+                .page_titles
+                .contains_key(&Some("Test Page 2".to_owned()))
+        );
         assert!(
             index
                 .backlinks
@@ -284,7 +287,11 @@ Link to [[20251224T000000Z]].
 
         assert_eq!(index.page_metas.len(), 1);
         assert!(!index.page_metas.contains_key(&page1_id));
-        assert!(!index.page_titles.contains_key("Test Page 1"));
+        assert!(
+            !index
+                .page_titles
+                .contains_key(&Some("Test Page 1".to_owned()))
+        );
 
         // removing non-existent page should not cause any issues
         let non_existent_id = crate::page_id::PageId::from_str("20251225T000000Z")?;

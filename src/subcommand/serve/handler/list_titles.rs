@@ -27,7 +27,7 @@ pub async fn handle(
         .page_titles
         .iter()
         .map(|(title, page_ids)| ListTitlesResponsePageTitle {
-            value: title.to_owned(),
+            value: title.clone().unwrap_or_default(),
             page_ids: page_ids
                 .iter()
                 .map(|id| id.to_string())

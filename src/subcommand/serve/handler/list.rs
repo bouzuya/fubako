@@ -14,7 +14,7 @@ impl axum::response::IntoResponse for ListResponse {
 
 pub struct ListResponsePageMeta {
     pub(crate) id: String,
-    pub(crate) title: String,
+    pub(crate) title: Option<String>,
 }
 
 #[derive(serde::Deserialize)]
@@ -43,7 +43,7 @@ pub async fn handle(
         })
         .map(|(id, meta)| ListResponsePageMeta {
             id: id.to_string(),
-            title: meta.title.clone().unwrap_or_default(),
+            title: meta.title.clone(),
         })
         .collect::<Vec<ListResponsePageMeta>>();
     Ok(ListResponse { page_metas, q })

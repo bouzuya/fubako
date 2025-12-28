@@ -43,7 +43,14 @@
             {% for page_meta in page_metas %}
             <li>
                 <a href="/{{ page_meta.id }}">{{ page_meta.id }}</a>
-                <a href="/{{ page_meta.id }}">{{ page_meta.title }}</a>
+                <a href="/{{ page_meta.id }}">
+                    {% match page_meta.title %}
+                    {% when Some with (title) %}
+                    {{ title }}
+                    {% when None %}
+                    (Untitled)
+                    {% endmatch %}
+                </a>
             </li>
             {% endfor %}
         </ul>

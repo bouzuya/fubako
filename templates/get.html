@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{{ id }} {{ title }}</title>
+    <title>{{ id }} {% match title %}{% when Some with (t) %}{{ t }}{% when None %}(Untitled){% endmatch %}</title>
     <link rel="stylesheet" href="/styles/index.css" />
     <script defer="defer" src="/scripts/index.js"></script>
 </head>
@@ -22,7 +22,12 @@
         <div class="page_title_section">
             <h2>Page Title</h2>
             <p class="page_title_container">
-                <a href="/titles/{{ title | urlencode_strict }}">/titles/{{ title }}</a>
+                {% match title %}
+                {% when Some with (t) %}
+                <a href="/titles/{{ t | urlencode_strict }}">/titles/{{ t }}</a>
+                {% when None %}
+                (Untitled)
+                {% endmatch %}
             </p>
         </div>
 
@@ -45,7 +50,12 @@
                 {% for (page_id, page_title) in backlinks %}
                 <li>
                     <a href="/{{ page_id }}">{{ page_id }}</a>
-                    <a href="/titles/{{ page_title | urlencode_strict }}">{{ page_title }}</a>
+                    {% match page_title %}
+                    {% when Some with (t) %}
+                    <a href="/titles/{{ t | urlencode_strict }}">{{ t }}</a>
+                    {% when None %}
+                    (Untitled)
+                    {% endmatch %}
                 </li>
                 {% endfor %}
             </ul>

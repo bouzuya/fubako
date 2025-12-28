@@ -45,23 +45,22 @@ pub async fn handle(
                     .get(&page_id)
                     .map(|set| {
                         set.iter()
-                            .map(|id| -> (String, String) {
+                            .map(|id| -> (String, Option<String>) {
                                 (
                                     id.to_string(),
                                     state
                                         .index
                                         .page_metas
                                         .get(id)
-                                        .and_then(|it| it.title.clone())
-                                        .unwrap_or_default(),
+                                        .and_then(|it| it.title.clone()),
                                 )
                             })
-                            .collect::<Vec<(String, String)>>()
+                            .collect::<Vec<(String, Option<String>)>>()
                     })
                     .unwrap_or_default(),
                 html,
                 id: page_id.to_string(),
-                title: page_meta.title.clone().unwrap_or_default(),
+                title: page_meta.title.clone(),
             }))
         }
         None => Ok(GetRootOrListPagesResponse::List),

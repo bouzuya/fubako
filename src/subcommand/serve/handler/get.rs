@@ -1,10 +1,10 @@
 #[derive(Debug, askama::Template)]
 #[template(path = "get.html")]
 pub struct GetResponse {
-    pub(crate) backlinks: Vec<(String, String)>,
+    pub(crate) backlinks: Vec<(String, Option<String>)>,
     pub(crate) html: String,
     pub(crate) id: String,
-    pub(crate) title: String,
+    pub(crate) title: Option<String>,
 }
 
 impl axum::response::IntoResponse for GetResponse {
@@ -37,22 +37,21 @@ pub async fn handle(
             .get(&page_id)
             .map(|set| {
                 set.iter()
-                    .map(|id| -> (String, String) {
+                    .map(|id| -> (String, Option<String>) {
                         (
                             id.to_string(),
                             state
                                 .index
                                 .page_metas
                                 .get(id)
-                                .and_then(|it| it.title.clone())
-                                .unwrap_or_default(),
+                                .and_then(|it| it.title.clone()),
                         )
                     })
-                    .collect::<Vec<(String, String)>>()
+                    .collect::<Vec<(String, Option<String>)>>()
             })
             .unwrap_or_default(),
         html,
         id: page_id.to_string(),
-        title: page_meta.title.clone().unwrap_or_default(),
+        title: page_meta.title.clone(),
     })
 }

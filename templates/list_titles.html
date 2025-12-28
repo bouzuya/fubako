@@ -42,7 +42,13 @@
         <ul>
             {% for page_title in page_titles %}
             <li>
-                <a href="/titles/{{ page_title.value | urlencode_strict }}">{{ page_title.value }}</a>
+                {% match page_title.value %}
+                {% when Some with (title) %}
+                <a href="/titles/{{ title | urlencode_strict }}">{{ title }}</a>
+                {% when None %}
+                (Untitled)
+                {% endmatch %}
+                </a>
                 {% if page_title.page_ids.len() == 1 %}
                 {% for page_id in page_title.page_ids %}
                 <a href="/{{ page_id }}">{{ page_id }}</a>

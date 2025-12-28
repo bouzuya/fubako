@@ -13,7 +13,7 @@ impl axum::response::IntoResponse for ListTitlesResponse {
 
 pub struct ListTitlesResponsePageTitle {
     pub(crate) page_ids: Vec<String>,
-    pub(crate) value: String,
+    pub(crate) value: Option<String>,
 }
 
 pub async fn handle(
@@ -27,7 +27,7 @@ pub async fn handle(
         .page_titles
         .iter()
         .map(|(title, page_ids)| ListTitlesResponsePageTitle {
-            value: title.clone().unwrap_or_default(),
+            value: title.clone(),
             page_ids: page_ids
                 .iter()
                 .map(|id| id.to_string())

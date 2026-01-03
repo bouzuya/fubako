@@ -2,7 +2,7 @@
 name = "fubako"
 edition = "2024"
 publish = false
-version = "0.1.0"
+version = "1.0.0"
 
 [dependencies]
 anyhow = "1.0.100"
